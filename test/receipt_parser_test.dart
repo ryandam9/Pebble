@@ -7,7 +7,7 @@ void main() {
   final fakePhoto = XFile('sample.jpg');
 
   test('extracts labelled total, date and GST', () {
-    final draft = parser.parse(fakePhoto, '''
+    final draft = parser.parse(fakePhoto, r'''
 WOOLWORTHS
 Market Street
 30/10/2026
