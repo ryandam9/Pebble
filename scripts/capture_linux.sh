@@ -66,7 +66,8 @@ capture home
 # Top-right + action opens the real manual form.
 tap 397 54
 capture add-expense
-tap 32 54
+tap 28 28
+capture home-return
 
 # All tab clicks are relative to the native Flutter window.
 tap 132 892
@@ -78,5 +79,19 @@ capture insights
 tap 396 892
 capture settings
 
-test "$(find "$OUT" -maxdepth 1 -name '*.png' | wc -l)" -eq 6
-echo "Captured six actual Linux desktop application screens in $OUT."
+test "$(find "$OUT" -maxdepth 1 -name '*.png' | wc -l)" -eq 7
+if cmp -s "$OUT/home-return.png" "$OUT/add-expense.png"; then
+  echo "Back navigation did not close the form."
+  exit 1
+fi
+for screen in expenses scan insights settings; do
+  if cmp -s "$OUT/$screen.png" "$OUT/add-expense.png"; then
+    echo "Navigation to $screen failed: the add-expense form is still visible."
+    exit 1
+  fi
+done
+if cmp -s "$OUT/expenses.png" "$OUT/insights.png"; then
+  echo "Expenses and Insights were captured as the same screen."
+  exit 1
+fi
+echo "Captured six distinct application screens and a back-navigation check."
