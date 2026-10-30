@@ -27,60 +27,13 @@ class InsightsScreen extends StatelessWidget {
         ifAbsent: () => expense.amountCents);
     }
     final entries = grouped.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    final months = List.generate(6, (index) {
-      final month = DateTime(now.year, now.month - (5 - index));
-      final amount = store.expenses.where((e) =>
-          e.date.year == month.year && e.date.month == month.month)
-          .fold<int>(0, (sum, e) => sum + e.amountCents);
-      return (month, amount);
-    });
-    final maxValue = math.max(1, months.fold<int>(0, (max, e) => math.max(max, e.$2)));
     final receiptCount = store.expenses.where((e) => e.receiptPath != null).length;
 
     return PebblePage(
       title: 'Insights',
       subtitle: 'Understand where your money goes',
       children: [
-        PebbleCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Row(children: [
-            Expanded(child: Text('Monthly spending', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19))),
-            Text('Last 6 months', style: TextStyle(color: PebbleColors.muted, fontSize: 12)),
-            Icon(Icons.keyboard_arrow_down, color: PebbleColors.muted),
-          ]),
-          const SizedBox(height: 26),
-          SizedBox(height: 142, child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: months.map((item) {
-              final heightFactor = item.$2 / maxValue;
-              final currentMonth = item.$1.month == now.month && item.$1.year == now.year;
-              return Expanded(child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FittedBox(fit: BoxFit.scaleDown, child: Text(
-                    item.$2 == 0 ? '—' : formatCents(item.$2),
-                    style: const TextStyle(fontSize: 10, color: PebbleColors.muted),
-                  )),
-                  const SizedBox(height: 5),
-                  Flexible(child: FractionallySizedBox(
-                    heightFactor: math.max(.035, heightFactor),
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: 32,
-                      decoration: BoxDecoration(
-                        color: currentMonth ? PebbleColors.blue : const Color(0xFFC5DDFB),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-                      ),
-                    ),
-                  )),
-                  const SizedBox(height: 8),
-                  Text(DateFormat('MMM').format(item.$1),
-                    style: TextStyle(color: currentMonth ? PebbleColors.blue : PebbleColors.muted,
-                      fontSize: 11, fontWeight: currentMonth ? FontWeight.w800 : FontWeight.w500)),
-                ],
-              ));
-            }).toList(),
-          )),
-        ])),
+        _MonthlySpendingCard(store: store),
         const SizedBox(height: 16),
         PebbleCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('By category', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19)),
@@ -122,7 +75,7 @@ class InsightsScreen extends StatelessWidget {
             const Row(children: [
               Icon(Icons.lightbulb_outline, color: PebbleColors.green),
               SizedBox(width: 10),
-              Text('Spending insight', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+              Flexible(child: Text('Spending insight', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
             ]),
             const SizedBox(height: 12),
             Text(total == 0 ? 'Make your first entry to unlock trends.'
@@ -138,7 +91,7 @@ class InsightsScreen extends StatelessWidget {
           const Row(children: [
             Icon(Icons.cloud_off_outlined, color: PebbleColors.purple),
             SizedBox(width: 10),
-            Text('Storage & privacy', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+            Flexible(child: Text('Storage & privacy', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
           ]),
           const SizedBox(height: 16),
           _StorageRow(Icons.storage_outlined, 'Local SQLite',
@@ -152,6 +105,90 @@ class InsightsScreen extends StatelessWidget {
         ])),
       ],
     );
+  }
+}
+
+class _MonthlySpendingCard extends StatefulWidget {
+  const _MonthlySpendingCard({required this.store});
+  final PebbleStore store;
+
+  @override
+  State<_MonthlySpendingCard> createState() => _MonthlySpendingCardState();
+}
+
+class _MonthlySpendingCardState extends State<_MonthlySpendingCard> {
+  static const _ranges = [3, 6, 12];
+  int _monthCount = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final months = List.generate(_monthCount, (index) {
+      final month = DateTime(now.year, now.month - (_monthCount - 1 - index));
+      final amount = widget.store.expenses.where((e) =>
+          e.date.year == month.year && e.date.month == month.month)
+          .fold<int>(0, (sum, e) => sum + e.amountCents);
+      return (month, amount);
+    });
+    final maxValue = math.max(1, months.fold<int>(0, (max, e) => math.max(max, e.$2)));
+    // Twelve bars are too narrow for amount labels; show them on hover/long-press instead.
+    final compact = _monthCount > 6;
+
+    return PebbleCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Expanded(child: Text('Monthly spending',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19))),
+        PopupMenuButton<int>(
+          tooltip: 'Choose period',
+          initialValue: _monthCount,
+          onSelected: (value) => setState(() => _monthCount = value),
+          itemBuilder: (context) => [
+            for (final range in _ranges)
+              PopupMenuItem(value: range, child: Text('Last $range months')),
+          ],
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('Last $_monthCount months',
+              style: const TextStyle(color: PebbleColors.muted, fontSize: 12)),
+            const Icon(Icons.keyboard_arrow_down, color: PebbleColors.muted),
+          ]),
+        ),
+      ]),
+      const SizedBox(height: 26),
+      SizedBox(height: 142, child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: months.map((item) {
+          final heightFactor = item.$2 / maxValue;
+          final currentMonth = item.$1.month == now.month && item.$1.year == now.year;
+          final amountText = item.$2 == 0 ? '—' : formatCents(item.$2);
+          final bar = Container(
+            width: compact ? 14 : 32,
+            decoration: BoxDecoration(
+              color: currentMonth ? PebbleColors.blue : const Color(0xFFC5DDFB),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(compact ? 4 : 7)),
+            ),
+          );
+          return Expanded(child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!compact) ...[
+                FittedBox(fit: BoxFit.scaleDown, child: Text(amountText,
+                  style: const TextStyle(fontSize: 10, color: PebbleColors.muted))),
+                const SizedBox(height: 5),
+              ],
+              Flexible(child: FractionallySizedBox(
+                heightFactor: math.max(.035, heightFactor),
+                alignment: Alignment.bottomCenter,
+                child: compact ? Tooltip(message: amountText, child: bar) : bar,
+              )),
+              const SizedBox(height: 8),
+              FittedBox(fit: BoxFit.scaleDown, child: Text(DateFormat('MMM').format(item.$1),
+                style: TextStyle(color: currentMonth ? PebbleColors.blue : PebbleColors.muted,
+                  fontSize: 11, fontWeight: currentMonth ? FontWeight.w800 : FontWeight.w500))),
+            ],
+          ));
+        }).toList(),
+      )),
+    ]));
   }
 }
 
