@@ -141,7 +141,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('833 Collins St, Docklands, VIC 3008'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Open in maps'));
+      await tester.tap(find.text('Open in Maps'));
       await tester.pumpAndSettle();
       expect(fake.opened.single.latitude, -37.8213);
 
@@ -164,7 +164,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('1 Flinders St, Melbourne, VIC 3000'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Remove location'));
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('currentLocationButton')), findsOneWidget);
     });
