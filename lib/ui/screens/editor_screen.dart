@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/design.dart';
 import '../../core/formatting.dart';
 import '../../data/expense_location.dart';
 import '../../data/location_service.dart';
