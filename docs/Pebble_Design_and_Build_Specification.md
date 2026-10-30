@@ -809,14 +809,30 @@ Package/API references were reviewed on **30 October 2026**. Versions are candid
 
 **Document usage:** This is a complete v1 product/build baseline, not a claim that implementation or device tests have already occurred. Mockup images are concepts only, and their sample amounts, people, dates and currency must not be treated as functional product requirements.
 
-# Appendix A. Existing concept mockups
+# Appendix A. UI design mockups
 
-The following previously created visual concepts are included for design alignment, not as exact final implementation screens. The design/build source of truth is the screen specification, tokens, interactions, and acceptance criteria above. In the production app, display AUD instead of USD and show locale-correct current dates.
+The five SVGs below illustrate the planned Flutter app and can be viewed directly on GitHub. They are **scalable design references, not implemented app screenshots or pixel-perfect component specifications**. The primary build source of truth remains the functional requirements, data model, interaction guidelines and acceptance tests in this document.
 
-**Concept board 1:** Home, manual entry and receipt review.
+The mockups use Australian-dollar sample data and Australian-style dates. Original exploratory concept images are retained in the separately distributed design package; the repository's editable SVGs provide a consistent, directly viewable reference set.
 
-![Pebble visual reference board 1](pebble_concepts_board_1.png){width=6.2in}
+## A.1 Home dashboard
 
-**Concept board 2:** Expense history and insights.
+![Pebble home screen](mockups/home.svg)
 
-![Pebble visual reference board 2](pebble_concepts_board_2.png){width=5.8in}
+## A.2 Manual expense entry
+
+![Pebble add expense screen](mockups/add-expense.svg)
+
+## A.3 Receipt scan and OCR review
+
+![Pebble scan receipt screen](mockups/scan-receipt.svg)
+
+## A.4 Expense history
+
+![Pebble expenses screen](mockups/expenses.svg)
+
+## A.5 Insights and data storage
+
+![Pebble insights screen](mockups/insights.svg)
+
+Browse the [mockup gallery](mockups/README.md) for page-by-page design intent and implementation notes.
