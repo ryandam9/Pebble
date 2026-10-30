@@ -20,8 +20,11 @@ void main() {
     expect(find.text('No expenses yet. Add your first one!'), findsWidgets);
     await tester.tap(find.text('Add expense').first);
     await tester.pumpAndSettle();
-    expect(find.text('Save expense'), findsOneWidget);
     expect(find.text('AMOUNT (AUD)'), findsOneWidget);
+    // The save action is below the fold, like on a real phone.
+    await tester.drag(find.byType(ListView).first, const Offset(0, -1000));
+    await tester.pumpAndSettle();
+    expect(find.text('Save expense'), findsOneWidget);
   });
 
   testWidgets('home includes all five navigation items', (tester) async {
