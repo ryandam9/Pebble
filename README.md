@@ -2,34 +2,48 @@
 
 **Small records. Clear picture.**
 
-Pebble is a proposed **offline-first expense and receipt tracker** for Android and iOS, built using Flutter. Quickly add an expense manually, or photograph a receipt and review the automatically detected fields before saving it.
+Pebble is an offline-first personal expense and receipt tracker for Android and iOS, built with Flutter.
 
-> **Project status:** Product specification and screen mockups. The Flutter application has not been implemented yet.
-
-## Design preview
+## Design
 
 [![Pebble Home screen](docs/mockups/home.svg)](docs/mockups/README.md)
 
-Explore the full [five-screen mockup gallery](docs/mockups/README.md): Home, Add Expense, Scan Receipt, Expenses and Insights.
+Explore the [five-screen mockup gallery](docs/mockups/README.md) and the [complete product specification](docs/Pebble_Design_and_Build_Specification.md).
 
-## Documentation
+## Flutter MVP
 
-- [**Complete Product Design & Build Specification**](docs/Pebble_Design_and_Build_Specification.md)
-- [**Visual mockups and design notes**](docs/mockups/README.md)
+- Native Flutter UI based on the five approved Pebble screen mockups.
+- Manual entry, edit and delete; amounts stored as integer cents in local Drift/SQLite.
+- Optional photo attachments in private on-device storage.
+- Expense search, monthly history, category filters, spending insights.
+- Receipt capture/gallery import and on-device OCR, followed by editable field review and explicit save confirmation.
+- No bank connection or backend required.
 
-## Architecture baseline
+## Build and run
 
-| Concern | Proposed technology |
-| --- | --- |
-| Cross-platform UI | Flutter, Material 3 |
-| State management | Riverpod |
-| Navigation | go_router |
-| Structured persistence | Drift + SQLite |
-| Receipt images | Application-private file storage |
-| Receipt OCR | On-device Google ML Kit text recognition |
-| Data portability | CSV export; complete ZIP backup/restore |
-| Cloud dependency | None for v1 |
+Install the Flutter stable SDK and Android/iOS tooling. Then:
 
-The planned first milestone is manual expense capture and local persistence, followed by receipt scanning, data safety, and spending insights.
+~~~bash
+bash scripts/bootstrap.sh
+flutter run
+~~~
 
-See the [requirements and milestone plan](docs/Pebble_Design_and_Build_Specification.md) before beginning implementation.
+The bootstrap generates Flutter Android/iOS native templates and Drift code. Platform files are not yet committed; consult the [implementation notes](docs/IMPLEMENTATION_STATUS.md) before native release.
+
+## Quality checks
+
+~~~bash
+dart format lib test
+flutter analyze
+flutter test
+~~~
+
+GitHub Actions also runs analysis and tests.
+
+## Docs
+
+- [Product Design & Build Specification](docs/Pebble_Design_and_Build_Specification.md)
+- [UI mockups](docs/mockups/README.md)
+- [Implementation status, limitations, setup](docs/IMPLEMENTATION_STATUS.md)
+
+**Status:** Working-source MVP pending CI and device validation. Pixel-perfect mockup parity and native production readiness have not yet been confirmed.
