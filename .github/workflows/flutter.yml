@@ -1,0 +1,24 @@
+name: Flutter checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate platform scaffold and dependencies
+        run: bash scripts/bootstrap.sh
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos
+      - name: Widget and unit tests
+        run: flutter test
