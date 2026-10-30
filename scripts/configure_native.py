@@ -80,7 +80,7 @@ def configure_android(root: Path) -> None:
     source = source.replace('android:label="pebble"', 'android:label="Pebble"')
     # GPS for "Current location" on an expense.
     permissions = ""
-    for name in ("ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"):
+    for name in ("ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "INTERNET"):
         if f"android.permission.{name}" not in source:
             permissions += f'    <uses-permission android:name="android.permission.{name}" />\n'
     if permissions:
