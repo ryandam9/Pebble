@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data/demo_expenses.dart';
 import 'package:flutter/material.dart';
