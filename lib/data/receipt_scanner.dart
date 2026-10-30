@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -84,9 +86,17 @@ class ReceiptScanner {
   ReceiptScanner({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
   final ImagePicker _picker;
 
+  /// ML Kit text recognition only ships for Android and iOS.
+  static bool get supportsOcr => Platform.isAndroid || Platform.isIOS;
+
+  /// image_picker can only open a camera on mobile; desktop gets a file chooser.
+  static bool get supportsCamera => Platform.isAndroid || Platform.isIOS;
+
   Future<ReceiptDraft?> pickAndRecognize(ImageSource source) async {
     final photo = await _picker.pickImage(source: source, maxWidth: 2000, imageQuality: 90);
     if (photo == null) return null;
+    // Without OCR the user enters every field by hand from the attached image.
+    if (!supportsOcr) return ReceiptDraft(image: photo, rawText: '');
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
       final image = InputImage.fromFilePath(photo.path);

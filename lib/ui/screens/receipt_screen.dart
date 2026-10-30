@@ -117,23 +117,32 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               const SizedBox(height: 16),
               const Text('Capture your receipt', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
-              const Text(
-                'Pebble recognises printed text on your device. Check the detected amount and date before saving.',
+              Text(
+                ReceiptScanner.supportsOcr
+                    ? 'Pebble recognises printed text on your device. Check the detected amount and date before saving.'
+                    : 'Text recognition is not available on this platform. Attach the receipt image and enter the details yourself.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: PebbleColors.muted, height: 1.5),
               ),
               const SizedBox(height: 22),
-              PebbleButton(
-                label: _busy ? 'Scanning...' : 'Take a photo',
-                icon: Icons.camera_alt_outlined,
-                onPressed: _busy ? null : () => _capture(ImageSource.camera),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : () => _capture(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Choose from gallery'),
-              ),
+              if (ReceiptScanner.supportsCamera) ...[
+                PebbleButton(
+                  label: _busy ? 'Scanning...' : 'Take a photo',
+                  icon: Icons.camera_alt_outlined,
+                  onPressed: _busy ? null : () => _capture(ImageSource.camera),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : () => _capture(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Choose from gallery'),
+                ),
+              ] else
+                PebbleButton(
+                  label: _busy ? 'Opening...' : 'Choose receipt image',
+                  icon: Icons.folder_open_outlined,
+                  onPressed: _busy ? null : () => _capture(ImageSource.gallery),
+                ),
               const SizedBox(height: 14),
             ]),
           ),
@@ -155,7 +164,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           const SizedBox(height: 16),
           Row(children: [
             const Expanded(child: Text('Recognised fields', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800))),
-            TextButton.icon(onPressed: _busy ? null : () => _capture(ImageSource.camera),
+            TextButton.icon(onPressed: _busy ? null : () => _capture(
+                ReceiptScanner.supportsCamera ? ImageSource.camera : ImageSource.gallery),
               icon: const Icon(Icons.refresh), label: const Text('Retake')),
           ]),
           const SizedBox(height: 8),
