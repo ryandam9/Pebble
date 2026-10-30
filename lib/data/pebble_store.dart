@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 
 import 'pebble_database.dart';
+import 'expense_location.dart';
 import 'storage.dart';
 
 /// Database-backed observable state. UI displays only saved rows, never sample data.
@@ -107,6 +108,7 @@ class PebbleStore extends ChangeNotifier {
     String? notes,
     XFile? image,
     String? existingReceiptPath,
+    ExpenseLocation? location,
     DateTime? createdAt,
   }) async {
     if (amountCents <= 0) throw ArgumentError('Amount must be greater than zero.');
@@ -131,6 +133,9 @@ class PebbleStore extends ChangeNotifier {
           merchant: Value(_optional(merchant)),
           notes: Value(_optional(notes)),
           receiptPath: Value(receiptPath),
+          locationAddress: Value(_optional(location?.address)),
+          latitude: Value(location?.latitude),
+          longitude: Value(location?.longitude),
           createdAt: createdAt ?? DateTime.now(),
         ),
       );

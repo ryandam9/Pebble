@@ -15,6 +15,11 @@ class ExpenseEntries extends Table {
   TextColumn get merchant => text().nullable()();
   TextColumn get notes => text().nullable()();
   TextColumn get receiptPath => text().nullable()();
+  /// Where the purchase happened. Any of these may be set on its own: a typed
+  /// address without coordinates, or GPS coordinates with no address found.
+  TextColumn get locationAddress => text().nullable()();
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -55,7 +60,7 @@ class PebbleDatabase extends _$PebbleDatabase {
         ));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -67,6 +72,11 @@ class PebbleDatabase extends _$PebbleDatabase {
           if (from < 2) {
             await m.createTable(expenseCategories);
             await _seedCategories();
+          }
+          if (from < 3) {
+            await m.addColumn(expenseEntries, expenseEntries.locationAddress);
+            await m.addColumn(expenseEntries, expenseEntries.latitude);
+            await m.addColumn(expenseEntries, expenseEntries.longitude);
           }
         },
       );
