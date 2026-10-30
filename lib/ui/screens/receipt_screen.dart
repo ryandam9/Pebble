@@ -9,6 +9,7 @@ import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../../data/receipt_scanner.dart';
 import '../pebble_root.dart';
+import '../receipt_viewer.dart';
 
 class ReceiptScreen extends StatefulWidget {
   const ReceiptScreen({required this.store, required this.onSaved, super.key});
@@ -175,7 +176,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         ] else ...[
           PebbleCard(
             padding: EdgeInsets.zero,
-            child: Image.file(File(draft.image.path), fit: BoxFit.contain, height: 300, width: double.infinity),
+            child: ReceiptThumbnail(file: File(draft.image.path), height: 300),
           ),
           const SizedBox(height: 16),
           Row(children: [

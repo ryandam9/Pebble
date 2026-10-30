@@ -8,6 +8,7 @@ import '../../core/formatting.dart';
 import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
+import '../receipt_viewer.dart';
 import '../ui_helpers.dart';
 import 'categories_screen.dart';
 
@@ -308,20 +309,18 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
             if (_attachment != null) ...[
               const SizedBox(height: 12),
-              ClipRRect(borderRadius: BorderRadius.circular(14),
-                child: Image.file(File(_attachment!.path), height: 130, fit: BoxFit.contain)),
+              ReceiptThumbnail(file: File(_attachment!.path), height: 200),
             ] else if (widget.entry?.receiptPath != null) ...[
               const SizedBox(height: 12),
               FutureBuilder<File?>(
                 future: _savedReceipt,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
-                    return const SizedBox(height: 130, child: Center(child: CircularProgressIndicator()));
+                    return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
                   }
                   final file = snapshot.data;
                   return file == null ? const Text('Receipt image unavailable')
-                      : ClipRRect(borderRadius: BorderRadius.circular(14),
-                          child: Image.file(file, height: 130, fit: BoxFit.contain));
+                      : ReceiptThumbnail(file: file, height: 200);
                 },
               ),
             ],
