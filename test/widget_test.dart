@@ -19,12 +19,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pebble'), findsOneWidget);
 
+    await tester.scrollUntilVisible(find.text('Add expense'), 200);
     await tester.tap(find.text('Add expense').first);
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('amountInput')), '48.75');
+    await tester.scrollUntilVisible(find.byKey(const Key('descriptionInput')), 150);
     await tester.enterText(find.byKey(const Key('descriptionInput')), 'Groceries');
-    await tester.ensureVisible(find.text('Save expense'));
+    await tester.scrollUntilVisible(find.text('Save expense'), 250);
     await tester.tap(find.text('Save expense'));
     await tester.pumpAndSettle();
 
