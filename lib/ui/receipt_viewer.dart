@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 
 /// A receipt preview that opens the full-screen viewer when tapped.
 class ReceiptThumbnail extends StatelessWidget {
-  const ReceiptThumbnail({required this.file, required this.height, super.key});
+  const ReceiptThumbnail({required this.file, required this.height, this.fillWidth = false, super.key});
   final File file;
   final double height;
+  /// When true, crops the surrounding photo rather than letterboxing it.
+  /// The full image is still available in the tap-to-zoom viewer.
+  final bool fillWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +21,8 @@ class ReceiptThumbnail extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: Stack(children: [
-            Image.file(file, height: height, width: double.infinity, fit: BoxFit.contain),
+            Image.file(file, height: height, width: double.infinity,
+              fit: fillWidth ? BoxFit.cover : BoxFit.contain),
             Positioned(
               right: 8,
               bottom: 8,
