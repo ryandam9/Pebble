@@ -25,7 +25,7 @@ ThemeData pebbleTheme() {
         fontSize: 30, fontWeight: FontWeight.w800, color: PebbleColors.ink,
       ),
       titleLarge: TextStyle(
-        fontSize: 20, fontWeight: FontWeight.w750, color: PebbleColors.ink,
+        fontSize: 20, fontWeight: FontWeight.w700, color: PebbleColors.ink,
       ),
       bodyMedium: TextStyle(fontSize: 14, color: PebbleColors.ink),
     ),
