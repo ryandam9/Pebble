@@ -40,14 +40,22 @@ if project.exists():
 info = root / "Runner" / "Info.plist"
 if info.exists():
     source = info.read_text()
-    usage = (
-        "\t<key>NSCameraUsageDescription</key>\n"
-        "\t<string>Take photos of receipts to record your expenses.</string>\n"
-        "\t<key>NSPhotoLibraryUsageDescription</key>\n"
-        "\t<string>Select a receipt photo to record an expense.</string>\n"
-    )
+    usage = ""
     if "NSCameraUsageDescription" not in source:
-        source = source.replace("</dict>", usage + "</dict>", 1)
+        usage += (
+            "\t<key>NSCameraUsageDescription</key>\n"
+            "\t<string>Take photos of receipts to record your expenses.</string>\n"
+        )
+    if "NSPhotoLibraryUsageDescription" not in source:
+        usage += (
+            "\t<key>NSPhotoLibraryUsageDescription</key>\n"
+            "\t<string>Select a receipt photo to record an expense.</string>\n"
+        )
+    if usage:
+        position = source.rfind("</dict>")
+        if position < 0:
+            raise RuntimeError("Invalid Runner Info.plist: missing closing dict")
+        source = source[:position] + usage + source[position:]
     info.write_text(source)
 
 print("Checked iOS 15.5 and receipt camera/photo permissions.")
