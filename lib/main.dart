@@ -354,8 +354,8 @@ class _PebbleHomeState extends State<PebbleHome> {
                   await widget.store.delete(item.id!);
                   await refresh();
                 } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Could not delete expense: $e')));
+                  if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not delete expense: $e'))); }
                 }
               }
             },
@@ -546,8 +546,8 @@ class _ExpenseFormState extends State<ExpenseForm> {
       await File(selected.path).copy(target);
       if (mounted) setState(() => imagePath = target);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not attach receipt: $e')));
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not attach receipt: $e'))); }
     }
   }
 
@@ -569,8 +569,8 @@ class _ExpenseFormState extends State<ExpenseForm> {
       ));
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to save expense: $e')));
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save expense: $e'))); }
     } finally {
       if (mounted) setState(() => saving = false);
     }
