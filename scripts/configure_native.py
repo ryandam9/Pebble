@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Patch freshly generated Flutter platform templates.
 
-iOS: deployment target and camera/photo permission text for receipt OCR.
+iOS: deployment target; camera, photo and location permission text.
+Android: app name and location permissions.
 Linux: window title.
 
 Idempotent, using only Python stdlib. The generated directories are kept
@@ -55,6 +56,11 @@ def configure_ios(root: Path) -> None:
                 "\t<key>NSPhotoLibraryUsageDescription</key>\n"
                 "\t<string>Select a receipt photo to record an expense.</string>\n"
             )
+        if "NSLocationWhenInUseUsageDescription" not in source:
+            usage += (
+                "\t<key>NSLocationWhenInUseUsageDescription</key>\n"
+                "\t<string>Save where you made a purchase.</string>\n"
+            )
         if usage:
             position = source.rfind("</dict>")
             if position < 0:
@@ -62,7 +68,28 @@ def configure_ios(root: Path) -> None:
             source = source[:position] + usage + source[position:]
         info.write_text(source)
 
-    print("Checked iOS 15.5 and receipt camera/photo permissions.")
+    print("Checked iOS 15.5 and camera/photo/location permissions.")
+
+
+def configure_android(root: Path) -> None:
+    manifest = root / "app" / "src" / "main" / "AndroidManifest.xml"
+    if not manifest.exists():
+        print("Android directory not generated; skipping Android setup.")
+        return
+    source = manifest.read_text()
+    source = source.replace('android:label="pebble"', 'android:label="Pebble"')
+    # GPS for "Current location" on an expense.
+    permissions = ""
+    for name in ("ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"):
+        if f"android.permission.{name}" not in source:
+            permissions += f'    <uses-permission android:name="android.permission.{name}" />\n'
+    if permissions:
+        match = re.search(r"<manifest[^>]*>\n", source)
+        if match is None:
+            raise RuntimeError("Invalid AndroidManifest.xml: missing <manifest> tag")
+        source = source[:match.end()] + permissions + source[match.end():]
+    manifest.write_text(source)
+    print("Checked Android app name and location permissions.")
 
 
 def configure_linux(root: Path) -> None:
@@ -79,4 +106,5 @@ def configure_linux(root: Path) -> None:
 
 project_root = Path(__file__).resolve().parents[1]
 configure_ios(project_root / "ios")
+configure_android(project_root / "android")
 configure_linux(project_root / "linux")

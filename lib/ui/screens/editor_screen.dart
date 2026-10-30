@@ -5,9 +5,12 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/design.dart';
 import '../../core/formatting.dart';
+import '../../data/expense_location.dart';
+import '../../data/location_service.dart';
 import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
+import '../location_field.dart';
 import '../receipt_viewer.dart';
 import '../ui_helpers.dart';
 import 'categories_screen.dart';
@@ -17,12 +20,14 @@ class EditorScreen extends StatefulWidget {
     required this.store,
     required this.onSwitchTab,
     this.entry,
+    this.locationService = const DeviceLocationService(),
     super.key,
   });
 
   final PebbleStore store;
   final ExpenseEntry? entry;
   final ValueChanged<int> onSwitchTab;
+  final LocationService locationService;
 
   @override
   State<EditorScreen> createState() => _EditorScreenState();
@@ -40,6 +45,7 @@ class _EditorScreenState extends State<EditorScreen> {
   String? _paymentMethod;
   Future<File?>? _savedReceipt;
   XFile? _attachment;
+  ExpenseLocation? _location;
   bool _saving = false;
 
   @override
@@ -47,6 +53,7 @@ class _EditorScreenState extends State<EditorScreen> {
     super.initState();
     final item = widget.entry;
     _date = item?.date ?? DateTime.now();
+    _location = item == null ? null : ExpenseLocation.of(item);
     _category = item?.category ??
         (widget.store.categoryNames.isEmpty ? otherCategory : widget.store.categoryNames.first);
     _paymentMethod = item == null ? 'Card' : item.paymentMethod;
@@ -115,6 +122,7 @@ class _EditorScreenState extends State<EditorScreen> {
         notes: _notes.text,
         image: _attachment,
         existingReceiptPath: entry?.receiptPath,
+        location: _location,
         createdAt: entry?.createdAt,
       );
       if (!mounted) return;
@@ -288,6 +296,12 @@ class _EditorScreenState extends State<EditorScreen> {
               controller: _merchant,
               decoration: const InputDecoration(labelText: 'Merchant (optional)',
                 hintText: 'e.g. Woolworths', prefixIcon: Icon(Icons.store_outlined)),
+            ),
+            const SizedBox(height: 16),
+            LocationField(
+              value: _location,
+              service: widget.locationService,
+              onChanged: (location) => setState(() => _location = location),
             ),
             const SizedBox(height: 12),
             TextFormField(

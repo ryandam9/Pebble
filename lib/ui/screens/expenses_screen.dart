@@ -150,6 +150,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       const SizedBox(width: 7),
                       const Icon(Icons.image_outlined, size: 15, color: PebbleColors.muted),
                     ],
+                    if (entry.locationAddress != null || entry.latitude != null) ...[
+                      const SizedBox(width: 5),
+                      const Icon(Icons.place_outlined, size: 15, color: PebbleColors.muted),
+                    ],
                   ]),
                 ])),
                 const SizedBox(width: 8),
