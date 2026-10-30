@@ -5,9 +5,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import 'pebble_database.dart';
+import 'storage.dart';
 
 /// Database-backed observable state. UI displays only saved rows, never sample data.
 class PebbleStore extends ChangeNotifier {
@@ -153,9 +153,9 @@ class PebbleStore extends ChangeNotifier {
 
   Future<File?> receiptFile(String? relativePath) async {
     if (relativePath == null) return null;
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await appDataDirectory();
     // Never trust user-derived absolute paths or traversal.
-    if (!relativePath.startsWith('receipts/') ||
+    if (!relativePath.startsWith('$receiptsFolder/') ||
         relativePath.contains('..') ||
         p.isAbsolute(relativePath)) {
       return null;
@@ -165,15 +165,15 @@ class PebbleStore extends ChangeNotifier {
   }
 
   Future<String> _copyReceipt(XFile source, String id) async {
-    final root = await getApplicationDocumentsDirectory();
-    final directory = Directory(p.join(root.path, 'receipts'));
+    final root = await appDataDirectory();
+    final directory = Directory(p.join(root.path, receiptsFolder));
     await directory.create(recursive: true);
     final extension = p.extension(source.path).toLowerCase();
     final safeExt = {'.png', '.jpg', '.jpeg', '.webp'}.contains(extension)
         ? extension
         : '.jpg';
     final name = id + '_' + DateTime.now().microsecondsSinceEpoch.toString() + safeExt;
-    final relative = p.join('receipts', name);
+    final relative = p.join(receiptsFolder, name);
     await File(source.path).copy(p.join(root.path, relative));
     return relative;
   }

@@ -35,7 +35,9 @@ class _EditorScreenState extends State<EditorScreen> {
   late final TextEditingController _notes;
   late DateTime _date;
   late String _category;
-  late String _paymentMethod;
+  /// Null when an existing expense has no payment method (e.g. saved from a receipt).
+  String? _paymentMethod;
+  Future<File?>? _savedReceipt;
   XFile? _attachment;
   bool _saving = false;
 
@@ -46,7 +48,9 @@ class _EditorScreenState extends State<EditorScreen> {
     _date = item?.date ?? DateTime.now();
     _category = item?.category ??
         (widget.store.categoryNames.isEmpty ? otherCategory : widget.store.categoryNames.first);
-    _paymentMethod = item?.paymentMethod ?? 'Card';
+    _paymentMethod = item == null ? 'Card' : item.paymentMethod;
+    // Load the saved photo once, not on every rebuild.
+    _savedReceipt = widget.store.receiptFile(item?.receiptPath);
     _amount = TextEditingController(text: item == null ? '' : (item.amountCents / 100).toStringAsFixed(2));
     _description = TextEditingController(text: item?.description ?? '');
     _merchant = TextEditingController(text: item?.merchant ?? '');
@@ -103,7 +107,8 @@ class _EditorScreenState extends State<EditorScreen> {
         date: _date,
         amountCents: cents,
         description: _description.text,
-        category: _category,
+        // The category may have been deleted elsewhere while this screen was open.
+        category: widget.store.categoryNames.contains(_category) ? _category : otherCategory,
         paymentMethod: _paymentMethod,
         merchant: _merchant.text,
         notes: _notes.text,
@@ -264,12 +269,13 @@ class _EditorScreenState extends State<EditorScreen> {
             })),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
+              hint: const Text('Not set'),
               decoration: const InputDecoration(labelText: 'Payment method',
                 prefixIcon: Icon(Icons.credit_card_outlined)),
               items: ['Card', 'Cash', 'Bank transfer', 'Other'].map((value) =>
                 DropdownMenuItem(value: value, child: Text(value))).toList(),
-              onChanged: (value) => setState(() => _paymentMethod = value ?? 'Card'),
+              onChanged: (value) => setState(() => _paymentMethod = value),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -307,8 +313,11 @@ class _EditorScreenState extends State<EditorScreen> {
             ] else if (widget.entry?.receiptPath != null) ...[
               const SizedBox(height: 12),
               FutureBuilder<File?>(
-                future: widget.store.receiptFile(widget.entry!.receiptPath),
+                future: _savedReceipt,
                 builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const SizedBox(height: 130, child: Center(child: CircularProgressIndicator()));
+                  }
                   final file = snapshot.data;
                   return file == null ? const Text('Receipt image unavailable')
                       : ClipRRect(borderRadius: BorderRadius.circular(14),
