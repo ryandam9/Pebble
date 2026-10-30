@@ -1,0 +1,24 @@
+# Flutter / Dart generated output
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+*.iml
+.idea/
+.vscode/
+**/*.g.dart
+
+# Native platforms are created using scripts/bootstrap.sh for MVP stage.
+# Once generated projects are reviewed, commit their configuration in a
+# dedicated platform-integration PR.
+android/
+ios/
+linux/
+macos/
+windows/
+web/
+.metadata

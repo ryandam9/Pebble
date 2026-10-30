@@ -1,0 +1,32 @@
+name: Flutter checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate platform scaffold and dependencies
+        run: bash scripts/bootstrap.sh
+      - name: Format sources (build environment)
+        run: dart format lib test
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos
+      - name: Widget and unit tests
+        run: flutter test
+      - name: Build Android debug APK
+        run: flutter build apk --debug --no-pub
+      - name: Upload Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebble-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
