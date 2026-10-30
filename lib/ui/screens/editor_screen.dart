@@ -13,6 +13,7 @@ import '../pebble_root.dart';
 import '../location_field.dart';
 import '../receipt_viewer.dart';
 import '../ui_helpers.dart';
+import '../watercolor.dart';
 import 'categories_screen.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -158,225 +159,384 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  InputDecoration _bare(String hint) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(color: Watercolor.muted),
+    isDense: true,
+    contentPadding: EdgeInsets.zero,
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+    errorBorder: InputBorder.none,
+    focusedErrorBorder: InputBorder.none,
+    filled: false,
+  );
+
+  Widget _smallLabel(String label) => Padding(
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Text(label, style: const TextStyle(
+      fontSize: 12, color: Watercolor.muted, fontWeight: FontWeight.w600)),
+  );
+
+  Widget _dateCard() => WatercolorPanel(
+    tint: const Color(0xFFFFFBF5),
+    onTap: _selectDate,
+    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+    child: Row(children: [
+      const WatercolorIcon(Icons.calendar_month_outlined),
+      const SizedBox(width: 8),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _smallLabel('Date'),
+        Text(friendlyDate.format(_date), maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700, color: Watercolor.ink)),
+      ])),
+      const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Watercolor.muted),
+    ]),
+  );
+
+  Widget _paymentCard() => WatercolorPanel(
+    tint: const Color(0xFFFFFBF5),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+    child: Row(children: [
+      const WatercolorIcon(Icons.credit_card_outlined),
+      const SizedBox(width: 8),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _smallLabel('Payment method'),
+        DropdownButtonHideUnderline(child: DropdownButton<String>(
+          key: const Key('paymentMethodInput'),
+          isDense: true,
+          isExpanded: true,
+          value: _paymentMethod,
+          hint: const Text('Not set', style: TextStyle(fontSize: 13)),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+          items: ['Card', 'Cash', 'Bank transfer', 'Other'].map((value) =>
+            DropdownMenuItem<String>(
+              value: value,
+              child: Text(value, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: Watercolor.ink)),
+            )).toList(),
+          onChanged: (value) => setState(() => _paymentMethod = value),
+        )),
+      ])),
+    ]),
+  );
+
+  Widget _inputRow({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    String? Function(String?)? validator,
+    int? maxLength,
+    Key? fieldKey,
+    int maxLines = 1,
+  }) => WatercolorPanel(
+    tint: const Color(0xFFFFFBF5),
+    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.only(top: 9),
+        child: WatercolorIcon(icon, tint: Watercolor.lilac)),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _smallLabel(label),
+        TextFormField(
+          key: fieldKey,
+          controller: controller,
+          maxLines: maxLines,
+          maxLength: maxLength,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: _bare(hint),
+          style: const TextStyle(fontSize: 14, color: Watercolor.ink,
+            fontWeight: FontWeight.w600),
+          validator: validator,
+        ),
+      ])),
+    ]),
+  );
+
+  Widget _categoryTiles() => ListenableBuilder(
+    listenable: widget.store,
+    builder: (context, _) => LayoutBuilder(builder: (context, constraints) {
+      final tileWidth = (constraints.maxWidth - 24) / 4;
+      final names = widget.store.categoryNames;
+      return Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final category in names)
+          Builder(builder: (context) {
+            final selected = _category == category;
+            final style = categoryStyle(widget.store, category);
+            return Semantics(
+              button: true, selected: selected, label: category,
+              child: InkWell(
+                key: Key('category_' + category),
+                onTap: () => setState(() => _category = category),
+                borderRadius: BorderRadius.circular(15),
+                child: Container(
+                  width: tileWidth, height: 74,
+                  decoration: BoxDecoration(
+                    color: style.background,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: selected ? style.foreground : Watercolor.stroke,
+                      width: selected ? 2 : 0.7),
+                  ),
+                  child: Stack(children: [
+                    const Positioned.fill(child: IgnorePointer(
+                      child: CustomPaint(painter: _TilePigment()))),
+                    Center(child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(style.icon, size: 26, color: style.foreground),
+                        const SizedBox(height: 4),
+                        Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Watercolor.ink,
+                            fontSize: 11, fontWeight: selected
+                              ? FontWeight.w800 : FontWeight.w600)),
+                      ],
+                    )),
+                    if (selected) Positioned(right: 4, top: 4,
+                      child: CircleAvatar(radius: 9,
+                        backgroundColor: style.foreground,
+                        child: const Icon(Icons.check, size: 11, color: Colors.white))),
+                  ]),
+                ),
+              ),
+            );
+          }),
+        InkWell(
+          key: const Key('newCategoryTile'),
+          onTap: _newCategory,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            width: tileWidth, height: 74,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBF5),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Watercolor.stroke, width: 1.5)),
+            child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.add, size: 27, color: Watercolor.cobalt),
+              SizedBox(height: 4),
+              Text('New', style: TextStyle(color: Watercolor.cobalt,
+                fontSize: 11, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      ]);
+    }),
+  );
+
+  Widget _receiptSection() => Column(
+    children: [
+      WatercolorPanel(
+        tint: const Color(0xFFEDF3FF),
+        padding: EdgeInsets.zero,
+        onTap: _attach,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(children: [
+            const Icon(Icons.attach_file_rounded, color: Watercolor.cobalt),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_attachment == null
+                ? 'Attach photo or receipt' : 'Replace receipt photo',
+              style: const TextStyle(fontWeight: FontWeight.w700,
+                color: Watercolor.cobalt))),
+            const Icon(Icons.chevron_right_rounded, color: Watercolor.cobalt),
+          ]),
+        ),
+      ),
+      if (_attachment != null) ...[
+        const SizedBox(height: 10),
+        ReceiptThumbnail(file: File(_attachment!.path), height: 295, fillWidth: true),
+      ] else if (widget.entry?.receiptPath != null) ...[
+        const SizedBox(height: 10),
+        FutureBuilder<File?>(
+          future: _savedReceipt,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox(height: 180,
+                child: Center(child: CircularProgressIndicator()));
+            }
+            final file = snapshot.data;
+            return file == null
+              ? const Text('Receipt photo unavailable',
+                  style: TextStyle(color: Watercolor.muted))
+              : ReceiptThumbnail(file: file, height: 295, fillWidth: true);
+          },
+        ),
+      ],
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Form(
-        key: _formKey,
-        child: PebblePage(
-          title: widget.entry == null ? 'Add expense' : 'Edit expense',
-          subtitle: widget.entry == null ? 'Fast manual entry' : 'Update this saved expense',
-          smallTitle: true,
-          action: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (widget.entry != null)
-              IconButton(tooltip: 'Delete expense', onPressed: _saving ? null : _delete,
-                icon: Icon(Icons.delete_outline, color: Colors.red.shade700)),
-            IconButton(tooltip: 'Close', onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close)),
-          ]),
-          children: [
-            Row(children: [
-              Expanded(child: _MethodSegment(
-                text: 'Manual', icon: Icons.edit_outlined, selected: true, onTap: () {},
-              )),
-              const SizedBox(width: 7),
-              Expanded(child: _MethodSegment(
-                text: 'Receipt', icon: Icons.camera_alt_outlined, selected: false,
-                onTap: () => widget.onSwitchTab(2),
-              )),
-            ]),
-            const SizedBox(height: 17),
-            PebbleCard(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('AMOUNT (AUD)', style: TextStyle(fontSize: 12, color: PebbleColors.muted, fontWeight: FontWeight.w700)),
-                TextFormField(
-                  key: const Key('amountInput'),
-                  controller: _amount,
-                  style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: PebbleColors.ink),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    hintText: '0.00',
-                    prefixText: r'$',
-                    prefixStyle: TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: PebbleColors.ink),
-                    border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  validator: (v) => parseAmount(v ?? '') == null ? 'Enter an amount greater than zero (e.g. 12.50)' : null,
-                ),
-              ]),
-            ),
-            const SizedBox(height: 12),
-            PebbleCard(
-              onTap: _selectDate,
-              child: Row(children: [
-                const Icon(Icons.calendar_month_outlined, color: PebbleColors.muted),
-                const SizedBox(width: 13),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('DATE', style: TextStyle(fontSize: 11, color: PebbleColors.muted)),
-                  const SizedBox(height: 4),
-                  Text(friendlyDate.format(_date), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                ])),
-                const Icon(Icons.keyboard_arrow_down, color: PebbleColors.muted),
-              ]),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              key: const Key('descriptionInput'),
-              controller: _description,
-              maxLength: 240,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Description', hintText: 'What did you spend on?',
-                prefixIcon: Icon(Icons.notes_outlined)),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Description is required' : null,
-            ),
-            const SizedBox(height: 5),
-            const Text('Category', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            // Rebuild when a category is added from the "New" tile below.
-            ListenableBuilder(listenable: widget.store, builder: (context, _) => LayoutBuilder(builder: (context, constraints) {
-              final tileWidth = (constraints.maxWidth - 24) / 4;
-              final names = widget.store.categoryNames;
-              return Wrap(
-                spacing: 8, runSpacing: 8,
-                children: [...List.generate(names.length, (i) {
-                  final category = names[i];
-                  final selected = _category == category;
-                  final style = categoryStyle(widget.store, category);
-                  return InkWell(
-                    onTap: () => setState(() => _category = category),
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      width: tileWidth, height: 74,
-                      decoration: BoxDecoration(
-                        color: style.background,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: selected ? style.foreground : Colors.transparent, width: 2),
-                      ),
-                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(style.icon, color: style.foreground),
-                        const SizedBox(height: 5),
-                        Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+      backgroundColor: Watercolor.paper,
+      body: WatercolorCanvas(
+        child: Form(
+          key: _formKey,
+          child: SafeArea(
+            bottom: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 650),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(17, 12, 17, 28),
+                  children: [
+                    Row(children: [
+                      IconButton(
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_rounded,
+                          color: Watercolor.ink)),
+                      const SizedBox(width: 3),
+                      Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.entry == null ? 'Add expense' : 'Edit expense',
+                            style: const TextStyle(
+                              color: Watercolor.ink, fontFamily: 'serif',
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w700, fontSize: 29)),
+                          Text(widget.entry == null ? 'A new little moment' : 'Update this saved expense',
+                            style: const TextStyle(
+                              fontSize: 12, color: Watercolor.muted)),
+                        ],
+                      )),
+                      if (widget.entry != null)
+                        IconButton(tooltip: 'Delete expense',
+                          onPressed: _saving ? null : _delete,
+                          icon: const Icon(Icons.delete_outline_rounded,
+                            color: Color(0xFFD74542))),
+                      IconButton(tooltip: 'Close',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded,
+                          color: Watercolor.ink)),
+                    ]),
+                    const SizedBox(height: 17),
+                    Row(children: [
+                      WatercolorSegment(label: 'Manual', icon: Icons.edit_outlined,
+                        selected: true, onTap: () {}),
+                      const SizedBox(width: 8),
+                      WatercolorSegment(label: 'Receipt', icon: Icons.camera_alt_outlined,
+                        selected: false,
+                        onTap: () => widget.onSwitchTab(2)),
+                    ]),
+                    const SizedBox(height: 14),
+                    WatercolorPanel(
+                      tint: const Color(0xFFE9F6FE),
+                      padding: const EdgeInsets.fromLTRB(17, 14, 18, 14),
+                      child: Row(children: [
+                        Expanded(child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _smallLabel('Amount (AUD)'),
+                            TextFormField(
+                              key: const Key('amountInput'),
+                              controller: _amount,
+                              style: const TextStyle(
+                                fontSize: 40, fontWeight: FontWeight.w800,
+                                color: Watercolor.ink),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              textInputAction: TextInputAction.next,
+                              decoration: _bare('0.00').copyWith(
+                                prefixText: r'$',
+                                prefixStyle: const TextStyle(
+                                  fontSize: 40, fontWeight: FontWeight.w800,
+                                  color: Watercolor.ink)),
+                              validator: (v) => parseAmount(v ?? '') == null
+                                ? 'Enter an amount greater than zero (e.g. 12.50)'
+                                : null,
+                            ),
+                          ],
+                        )),
+                        const WatercolorIcon(Icons.calculate_outlined,
+                          tint: Color(0xFFD5EAFB)),
                       ]),
                     ),
-                  );
-                }),
-                InkWell(
-                  key: const Key('newCategoryTile'),
-                  onTap: _newCategory,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    width: tileWidth, height: 74,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: PebbleColors.stroke, width: 2),
-                    ),
-                    child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.add, color: PebbleColors.blue),
-                      SizedBox(height: 5),
-                      Text('New', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: PebbleColors.blue)),
+                    const SizedBox(height: 11),
+                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Expanded(child: _dateCard()),
+                      const SizedBox(width: 9),
+                      Expanded(child: _paymentCard()),
                     ]),
-                  ),
-                )],
-              );
-            })),
-            const SizedBox(height: 14),
-            DropdownButtonFormField<String>(
-              initialValue: _paymentMethod,
-              hint: const Text('Not set'),
-              decoration: const InputDecoration(labelText: 'Payment method',
-                prefixIcon: Icon(Icons.credit_card_outlined)),
-              items: ['Card', 'Cash', 'Bank transfer', 'Other'].map((value) =>
-                DropdownMenuItem(value: value, child: Text(value))).toList(),
-              onChanged: (value) => setState(() => _paymentMethod = value),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _merchant,
-              decoration: const InputDecoration(labelText: 'Merchant (optional)',
-                hintText: 'e.g. Woolworths', prefixIcon: Icon(Icons.store_outlined)),
-            ),
-            const SizedBox(height: 16),
-            LocationField(
-              value: _location,
-              service: widget.locationService,
-              onChanged: (location) => setState(() => _location = location),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _notes,
-              maxLines: 2,
-              maxLength: 200,
-              decoration: const InputDecoration(labelText: 'Notes (optional)',
-                hintText: 'Add a note...', prefixIcon: Icon(Icons.edit_note_outlined)),
-            ),
-            PebbleCard(
-              color: const Color(0xFFF1F6FE),
-              onTap: _attach,
-              child: Row(children: [
-                const Icon(Icons.attach_file, color: PebbleColors.blue),
-                const SizedBox(width: 8),
-                Expanded(child: Text(
-                  _attachment == null ? 'Attach photo or receipt'
-                      : 'Replace: ' + _attachment!.name,
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: PebbleColors.blue, fontWeight: FontWeight.w700),
-                )),
-                const Icon(Icons.chevron_right, color: PebbleColors.blue),
-              ]),
-            ),
-            if (_attachment != null) ...[
-              const SizedBox(height: 12),
-              ReceiptThumbnail(file: File(_attachment!.path), height: 200),
-            ] else if (widget.entry?.receiptPath != null) ...[
-              const SizedBox(height: 12),
-              FutureBuilder<File?>(
-                future: _savedReceipt,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-                  }
-                  final file = snapshot.data;
-                  return file == null ? const Text('Receipt image unavailable')
-                      : ReceiptThumbnail(file: file, height: 200);
-                },
+                    const SizedBox(height: 11),
+                    _inputRow(
+                      label: 'Description', icon: Icons.notes_outlined,
+                      controller: _description,
+                      fieldKey: const Key('descriptionInput'),
+                      hint: 'What did you spend on?',
+                      maxLength: 240,
+                      validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Description is required' : null,
+                    ),
+                    const SizedBox(height: 17),
+                    WatercolorSection(
+                      title: 'Category',
+                      trailing: TextButton(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) =>
+                              CategoriesScreen(store: widget.store)),
+                          );
+                        },
+                        child: const Text('Manage ›',
+                          style: TextStyle(color: Watercolor.cobalt)),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    _categoryTiles(),
+                    const SizedBox(height: 12),
+                    _inputRow(
+                      label: 'Merchant (optional)', icon: Icons.storefront_outlined,
+                      controller: _merchant, hint: 'Merchant name',
+                    ),
+                    const SizedBox(height: 13),
+                    LocationField(
+                      value: _location,
+                      service: widget.locationService,
+                      onChanged: (value) => setState(() => _location = value),
+                    ),
+                    const SizedBox(height: 12),
+                    _inputRow(
+                      label: 'Notes (optional)', icon: Icons.note_alt_outlined,
+                      controller: _notes, hint: 'Add a note...',
+                      maxLines: 2, maxLength: 200,
+                    ),
+                    const SizedBox(height: 12),
+                    _receiptSection(),
+                    const SizedBox(height: 18),
+                    WatercolorSave(
+                      label: _saving ? 'Saving...' : 'Save expense',
+                      onPressed: _saving ? null : _save,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
-            ],
-            const SizedBox(height: 18),
-            PebbleButton(label: _saving ? 'Saving...' : 'Save expense',
-              onPressed: _saving ? null : _save),
-          ],
+            ),
+          ),
         ),
       ),
-      bottomNavigationBar: PebbleBottomNav(active: 1, onSelect: widget.onSwitchTab),
+      bottomNavigationBar: PebbleBottomNav(
+        active: 1, onSelect: widget.onSwitchTab),
     );
   }
 }
 
-class _MethodSegment extends StatelessWidget {
-  const _MethodSegment({required this.text, required this.icon, required this.selected, required this.onTap});
-  final String text;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
+/// Gentle painted highlight on category squares; never blocks interactions.
+class _TilePigment extends CustomPainter {
+  const _TilePigment();
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 50,
-    decoration: BoxDecoration(
-      color: selected ? PebbleColors.blue : const Color(0xFFE9EDF5),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, color: selected ? Colors.white : PebbleColors.muted),
-        const SizedBox(width: 9),
-        Text(text, style: TextStyle(color: selected ? Colors.white : PebbleColors.muted,
-          fontWeight: FontWeight.w800)),
-      ]),
-    ),
-  );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white.withValues(alpha: .16);
+    canvas.drawOval(Rect.fromLTWH(-9, -14, size.width * .86,
+      size.height * .83), paint);
+    paint.color = const Color(0xFFFFF0DF).withValues(alpha: .28);
+    canvas.drawOval(Rect.fromLTWH(size.width * .50, size.height * .45,
+      size.width * .65, size.height * .7), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TilePigment oldDelegate) => false;
 }
