@@ -303,8 +303,515 @@ class _PebbleHomeState extends State<PebbleHome> {
             ),
           ),
           Column(mainAxisSize: MainAxisSize.min, children: [
-            FittedBox(child: Text(money(total), style: const TextStyle(
-              fontWeight: FontWeight.w800, fontSize: 18))),
+            SizedBox(
+              width: 77,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  NumberFormat.currency(locale: 'en_AU', symbol: r'
+        ]),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Column(children: [
+        for (final c in active)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            child: Row(children: [
+              CircleAvatar(radius: 5, backgroundColor: categoryColor(c)),
+              const SizedBox(width: 7),
+              Expanded(child: Text(c, maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12))),
+              Text(money(totals[c]!), style: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+      ])),
+    ]);
+  }
+
+  Widget _empty() => const Padding(
+    padding: EdgeInsets.symmetric(vertical: 15),
+    child: Center(child: Text('No expenses yet. Add your first one!',
+      style: TextStyle(color: PebbleColors.muted))),
+  );
+
+  Widget _expenseRow(Expense item) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: CircleAvatar(
+      backgroundColor: categoryColor(item.category).withValues(alpha: 0.15),
+      child: Icon(categoryIcons[categories.indexOf(item.category)], color: categoryColor(item.category)),
+    ),
+    title: Text(item.merchant.isNotEmpty ? item.merchant : item.description,
+      maxLines: 1, overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontWeight: FontWeight.w700)),
+    subtitle: Text('${DateFormat('d MMM yyyy').format(item.date)} · ${item.category}',
+      style: const TextStyle(color: PebbleColors.muted, fontSize: 12)),
+    trailing: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('-${money(item.amountCents)}',
+          style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text(item.category, style: TextStyle(
+          fontSize: 11, color: categoryColor(item.category),
+          fontWeight: FontWeight.w700)),
+      ],
+    ),
+    onTap: () => showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(item.description, style: Theme.of(ctx).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(money(item.amountCents), style: const TextStyle(fontSize: 30,
+            fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          Text('${DateFormat.yMMMd().format(item.date)} · ${item.category}'),
+          if (item.notes.isNotEmpty) Text(item.notes),
+          if (item.receiptPath != null) TextButton.icon(
+            icon: const Icon(Icons.image_outlined),
+            label: const Text('View attached receipt'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              showDialog<void>(context: context, builder: (dialogContext) => Dialog(
+                child: Image.file(File(item.receiptPath!), errorBuilder: (context, error, stackTrace) =>
+                  const Padding(padding: EdgeInsets.all(32),
+                    child: Text('Receipt image is unavailable.'))),
+              ));
+            },
+          ),
+          const SizedBox(height: 15),
+          TextButton.icon(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            label: const Text('Delete expense', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (d) => AlertDialog(
+                  title: const Text('Delete this expense?'),
+                  content: const Text('This action cannot be undone.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Delete')),
+                  ],
+                ),
+              );
+              if (confirm == true && item.id != null) {
+                try {
+                  await widget.store.delete(item.id!);
+                  await refresh();
+                } catch (e) {
+                  if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not delete expense: $e'))); }
+                }
+              }
+            },
+          ),
+        ]),
+      ),
+    ),
+  );
+
+  Widget _expenses() => _scroll([
+    TextField(
+      decoration: const InputDecoration(
+        hintText: 'Search expenses, shops...',
+        prefixIcon: Icon(Icons.search),
+      ),
+      onChanged: (_) => setState(() {}),
+      controller: _searchController,
+    ),
+    const SizedBox(height: 15),
+    _monthSelector(),
+    const SizedBox(height: 14),
+    SizedBox(height: 40, child: ListView(
+      scrollDirection: Axis.horizontal,
+      children: ['All', ...categories].map((c) => Padding(
+        padding: const EdgeInsets.only(right: 7),
+        child: ChoiceChip(
+          label: Text(c),
+          selected: _filter == c,
+          onSelected: (_) => setState(() => _filter = c),
+        ),
+      )).toList(),
+    )),
+    const SizedBox(height: 12),
+    ...visible.where((e) => (_filter == 'All' || e.category == _filter) &&
+        ('${e.description} ${e.merchant} ${e.category}'.toLowerCase()
+          .contains(_searchController.text.toLowerCase()))).map((e) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [BoxShadow(
+              color: Color(0x0A334A68), blurRadius: 12, offset: Offset(0, 4))],
+          ),
+          child: _expenseRow(e),
+        ),
+      )),
+    if (visible.where((e) => (_filter == 'All' || e.category == _filter) &&
+        ('${e.description} ${e.merchant} ${e.category}'.toLowerCase()
+            .contains(_searchController.text.toLowerCase()))).isEmpty) _empty(),
+  ]);
+
+  final TextEditingController _searchController = TextEditingController();
+  String _filter = 'All';
+
+  Widget _monthSelector() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 15),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE2F9ED), borderRadius: BorderRadius.circular(18)),
+    child: Row(children: [
+      const Icon(Icons.calendar_month_outlined),
+      const SizedBox(width: 10),
+      Expanded(child: Text(DateFormat('MMMM yyyy').format(selectedMonth),
+        style: const TextStyle(fontWeight: FontWeight.w700))),
+      IconButton(tooltip: 'Previous month', onPressed: () => monthShift(-1),
+        icon: const Icon(Icons.chevron_left)),
+      IconButton(tooltip: 'Next month', onPressed: () => monthShift(1),
+        icon: const Icon(Icons.chevron_right)),
+    ]),
+  );
+
+  Widget _scanIntro() => _scroll([
+    _section('Scan your receipt', Column(children: [
+      const Icon(Icons.document_scanner_outlined,
+        color: PebbleColors.purple, size: 74),
+      const SizedBox(height: 14),
+      const Text('Capture a receipt and attach it to a new expense.'),
+      const SizedBox(height: 10),
+      const Text('Automatic OCR field extraction is planned for the next milestone. Enter the amount and description manually for now.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: PebbleColors.muted)),
+      const SizedBox(height: 25),
+      SizedBox(width: double.infinity, child: FilledButton.icon(
+        icon: const Icon(Icons.camera_alt_outlined),
+        label: const Text('Take receipt photo'),
+        onPressed: () => add(scan: true),
+      )),
+    ])),
+  ]);
+
+  Widget _insights() {
+    final sum = visible.fold<int>(0, (s, e) => s + e.amountCents);
+    final months = List.generate(6, (i) =>
+      DateTime(selectedMonth.year, selectedMonth.month - 5 + i));
+    final values = months.map((m) => expenses.where((e) =>
+      e.date.month == m.month && e.date.year == m.year)
+      .fold<int>(0, (s, e) => s + e.amountCents)).toList();
+    final max = values.fold<int>(1, (a, b) => a > b ? a : b);
+    return _scroll([
+      _section('Monthly spending', SizedBox(
+        height: 192,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          for (var i = 0; i < months.length; i++)
+            Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+              Text(values[i] == 0 ? '' : money(values[i]),
+                maxLines: 1, style: const TextStyle(fontSize: 9)),
+              const SizedBox(height: 5),
+              Container(height: 135 * (values[i] / max).clamp(0.02, 1.0),
+                width: 29,
+                decoration: BoxDecoration(
+                  color: i == 5 ? PebbleColors.blue : const Color(0xFFC5DDFB),
+                  borderRadius: BorderRadius.circular(7))),
+              const SizedBox(height: 7),
+              Text(DateFormat.MMM().format(months[i]),
+                style: const TextStyle(fontSize: 11, color: PebbleColors.muted)),
+            ])),
+        ]),
+      )),
+      const SizedBox(height: 16),
+      _section('By category', _categoryBreakdown()),
+      const SizedBox(height: 16),
+      _section('Budget insight', Text(
+        '${money(200000 - sum)} remaining of a ${money(200000)} monthly reference budget.',
+        style: const TextStyle(color: PebbleColors.green, fontWeight: FontWeight.w600))),
+      const SizedBox(height: 16),
+      _section('Storage & privacy', const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.storage),
+            title: Text('Local SQLite'), subtitle: Text('Expenses stay on your phone')),
+          ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.photo_library_outlined),
+            title: Text('Receipt photos'), subtitle: Text('Stored in the app’s private folder')),
+          ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.cloud_off_outlined),
+            title: Text('No cloud account'), subtitle: Text('Backup and export are future features')),
+        ],
+      )),
+    ]);
+  }
+
+  Widget _settings() => _scroll([
+    _section('About Pebble', const Column(crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Pebble v0.1.0'),
+        SizedBox(height: 10),
+        Text('Currency: AUD · Language: English (Australia)'),
+        SizedBox(height: 10),
+        Text('Offline-first. Your expenses are saved locally to SQLite.'),
+      ])),
+  ]);
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+}
+
+class ExpenseForm extends StatefulWidget {
+  const ExpenseForm({super.key, required this.store, this.startWithCamera = false});
+  final ExpenseStore store;
+  final bool startWithCamera;
+
+  @override
+  State<ExpenseForm> createState() => _ExpenseFormState();
+}
+
+class _ExpenseFormState extends State<ExpenseForm> {
+  final formKey = GlobalKey<FormState>();
+  final amount = TextEditingController();
+  final description = TextEditingController();
+  final merchant = TextEditingController();
+  final notes = TextEditingController();
+  DateTime date = DateTime.now();
+  String category = 'Groceries';
+  String payment = 'Card';
+  String? imagePath;
+  bool saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.startWithCamera) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => capture(ImageSource.camera));
+    }
+  }
+
+  Future<void> capture(ImageSource source) async {
+    try {
+      final selected = await ImagePicker().pickImage(
+        source: source, imageQuality: 85, maxWidth: 1800);
+      if (selected == null) return;
+      final directory = await getApplicationDocumentsDirectory();
+      final receipts = Directory(p.join(directory.path, 'receipts'));
+      await receipts.create(recursive: true);
+      final target = p.join(receipts.path,
+        '${DateTime.now().microsecondsSinceEpoch}${p.extension(selected.path)}');
+      await File(selected.path).copy(target);
+      if (mounted) setState(() => imagePath = target);
+    } catch (e) {
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not attach receipt: $e'))); }
+    }
+  }
+
+  Future<void> save() async {
+    if (!formKey.currentState!.validate() || saving) return;
+    final cents = amountToCents(amount.text);
+    if (cents == null) return;
+    setState(() => saving = true);
+    try {
+      await widget.store.add(Expense(
+        date: date,
+        amountCents: cents,
+        description: description.text.trim(),
+        category: category,
+        merchant: merchant.text.trim(),
+        paymentMethod: payment,
+        notes: notes.text.trim(),
+        receiptPath: imagePath,
+      ));
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save expense: $e'))); }
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
+  Widget fieldTitle(String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 8, top: 14),
+    child: Text(value.toUpperCase(), style: const TextStyle(
+      fontWeight: FontWeight.w700, fontSize: 12, color: PebbleColors.muted)));
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Add expense'),
+      centerTitle: true,
+      backgroundColor: PebbleColors.background,
+    ),
+    body: SafeArea(child: Form(key: formKey, child: ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      children: [
+        Row(children: [
+          Expanded(child: FilledButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Manual'),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: OutlinedButton.icon(
+            onPressed: () => capture(ImageSource.camera),
+            icon: const Icon(Icons.camera_alt_outlined),
+            label: const Text('Receipt'),
+          )),
+        ]),
+        fieldTitle('Amount (AUD)'),
+        TextFormField(
+          controller: amount,
+          autofocus: !widget.startWithCamera,
+          decoration: const InputDecoration(prefixText: r'$ ', hintText: '0.00'),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
+          validator: (v) => amountToCents(v ?? '') == null
+            ? 'Enter an amount greater than zero (up to 2 decimals)' : null,
+        ),
+        fieldTitle('Date'),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final selected = await showDatePicker(context: context,
+              initialDate: date, firstDate: DateTime(2000),
+              lastDate: DateTime(2100));
+            if (selected != null) setState(() => date = selected);
+          },
+          icon: const Icon(Icons.calendar_month_outlined),
+          label: Text(DateFormat('d MMMM yyyy').format(date)),
+        ),
+        fieldTitle('Description'),
+        TextFormField(
+          controller: description,
+          decoration: const InputDecoration(hintText: 'What did you spend on?'),
+          validator: (v) => (v ?? '').trim().isEmpty
+            ? 'Please enter a description' : null,
+          maxLength: 160,
+        ),
+        fieldTitle('Category'),
+        SizedBox(height: 77, child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (var i = 0; i < categories.length; i++)
+              Padding(padding: const EdgeInsets.only(right: 8),
+                child: InkWell(
+                  onTap: () => setState(() => category = categories[i]),
+                  borderRadius: BorderRadius.circular(15),
+                  child: Container(
+                    width: 91,
+                    decoration: BoxDecoration(
+                      color: category == categories[i]
+                        ? categoryColors[i].withValues(alpha: 0.17) : Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: category == categories[i] ? categoryColors[i]
+                          : const Color(0xFFE5EBF3),
+                        width: category == categories[i] ? 2 : 1),
+                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(categoryIcons[i], color: categoryColors[i]),
+                      const SizedBox(height: 5),
+                      Text(categories[i], style: const TextStyle(fontSize: 12)),
+                    ]),
+                  ),
+                )),
+          ],
+        )),
+        fieldTitle('Payment method'),
+        DropdownButtonFormField<String>(
+          initialValue: payment,
+          items: ['Card', 'Cash', 'Bank transfer', 'Other'].map((v) =>
+            DropdownMenuItem(value: v, child: Text(v))).toList(),
+          onChanged: (v) => setState(() => payment = v ?? payment),
+        ),
+        fieldTitle('Merchant (optional)'),
+        TextFormField(controller: merchant,
+          decoration: const InputDecoration(hintText: 'e.g. Woolworths')),
+        fieldTitle('Notes (optional)'),
+        TextFormField(controller: notes, maxLines: 2,
+          decoration: const InputDecoration(hintText: 'Add a note...')),
+        const SizedBox(height: 18),
+        OutlinedButton.icon(
+          onPressed: () => capture(ImageSource.gallery),
+          icon: const Icon(Icons.attach_file_rounded),
+          label: Text(imagePath == null ? 'Attach photo or receipt' : 'Replace attached receipt'),
+        ),
+        if (imagePath != null) Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(children: [
+            ClipRRect(borderRadius: BorderRadius.circular(13),
+              child: Image.file(File(imagePath!), height: 155,
+                fit: BoxFit.cover)),
+            TextButton.icon(
+              onPressed: () => setState(() => imagePath = null),
+              icon: const Icon(Icons.close), label: const Text('Remove image')),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: saving ? null : save,
+          style: FilledButton.styleFrom(
+            backgroundColor: PebbleColors.blue,
+            minimumSize: const Size(double.infinity, 52)),
+          child: Text(saving ? 'Saving...' : 'Save expense'),
+        ),
+      ],
+    ))),
+  );
+
+  @override
+  void dispose() {
+    amount.dispose();
+    description.dispose();
+    merchant.dispose();
+    notes.dispose();
+    super.dispose();
+  }
+}
+
+class SpendingDonut extends CustomPainter {
+  const SpendingDonut({required this.fractions, required this.colors});
+
+  final List<double> fractions;
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide * 0.39;
+    final oval = Rect.fromCircle(center: centre, radius: radius);
+    var angle = -math.pi / 2;
+    for (var index = 0; index < fractions.length; index++) {
+      final sweep = fractions[index] * 2 * math.pi;
+      final paint = Paint()
+        ..color = colors[index]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 17;
+      canvas.drawArc(oval, angle, sweep, false, paint);
+      angle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SpendingDonut oldDelegate) =>
+      oldDelegate.fractions.toString() != fractions.toString() ||
+      oldDelegate.colors.toString() != colors.toString();
+}
+,
+                    decimalDigits: 0).format(total / 100),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 18),
+                ),
+              ),
+            ),
             const Text('Total', style: TextStyle(
               fontSize: 11, color: PebbleColors.muted)),
           ]),
