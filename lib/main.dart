@@ -263,7 +263,7 @@ class _PebbleHomeState extends State<PebbleHome> {
       borderRadius: BorderRadius.circular(21),
       boxShadow: const [BoxShadow(color: Color(0x0A334A68), blurRadius: 15, offset: Offset(0, 4))]),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w750)),
+      Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
       const SizedBox(height: 14), child,
     ]),
   );
@@ -326,7 +326,7 @@ class _PebbleHomeState extends State<PebbleHome> {
             onPressed: () {
               Navigator.pop(ctx);
               showDialog<void>(context: context, builder: (dialogContext) => Dialog(
-                child: Image.file(File(item.receiptPath!), errorBuilder: (_, _, _) =>
+                child: Image.file(File(item.receiptPath!), errorBuilder: (context, error, stackTrace) =>
                   const Padding(padding: EdgeInsets.all(32),
                     child: Text('Receipt image is unavailable.'))),
               ));
@@ -394,7 +394,9 @@ class _PebbleHomeState extends State<PebbleHome> {
           .contains(_searchController.text.toLowerCase()))).map((e) =>
       Padding(padding: const EdgeInsets.only(bottom: 10),
         child: _section('', _expenseRow(e)))),
-    if (visible.isEmpty) _empty(),
+    if (visible.where((e) => (_filter == 'All' || e.category == _filter) &&
+        ('${e.description} ${e.merchant} ${e.category}'.toLowerCase()
+            .contains(_searchController.text.toLowerCase()))).isEmpty) _empty(),
   ]);
 
   final TextEditingController _searchController = TextEditingController();
