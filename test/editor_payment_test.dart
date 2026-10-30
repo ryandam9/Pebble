@@ -46,4 +46,42 @@ void main() {
     expect(store.expenses.single.description, 'Flat white');
     expect(store.expenses.single.paymentMethod, isNull);
   });
+
+  testWidgets('delete from the header icon removes the expense', (tester) async {
+    tester.view.physicalSize = const Size(430, 950);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()))..start();
+    addTearDown(store.dispose);
+    await tester.runAsync(() => store.save(
+      date: DateTime(2026, 10, 30), amountCents: 500, description: 'Snack', category: 'Food'));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: Builder(builder: (context) =>
+      TextButton(
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute<int>(builder: (_) =>
+          EditorScreen(store: store, entry: store.expenses.single, onSwitchTab: (_) {}))),
+        child: const Text('open'),
+      )))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cancel'), findsNothing);
+    await tester.tap(find.byTooltip('Delete expense'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(store.expenses, isEmpty);
+    expect(find.byType(EditorScreen), findsNothing);
+  });
+
+  testWidgets('a new expense has no delete icon', (tester) async {
+    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()))..start();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(MaterialApp(home: EditorScreen(store: store, onSwitchTab: (_) {})));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Delete expense'), findsNothing);
+    expect(find.byTooltip('Close'), findsOneWidget);
+  });
 }

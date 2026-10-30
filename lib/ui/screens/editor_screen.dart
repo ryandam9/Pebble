@@ -159,8 +159,13 @@ class _EditorScreenState extends State<EditorScreen> {
           title: widget.entry == null ? 'Add expense' : 'Edit expense',
           subtitle: widget.entry == null ? 'Fast manual entry' : 'Update this saved expense',
           smallTitle: true,
-          action: IconButton(tooltip: 'Close', onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close)),
+          action: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (widget.entry != null)
+              IconButton(tooltip: 'Delete expense', onPressed: _saving ? null : _delete,
+                icon: Icon(Icons.delete_outline, color: Colors.red.shade700)),
+            IconButton(tooltip: 'Close', onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close)),
+          ]),
           children: [
             Row(children: [
               Expanded(child: _MethodSegment(
@@ -327,13 +332,6 @@ class _EditorScreenState extends State<EditorScreen> {
             const SizedBox(height: 18),
             PebbleButton(label: _saving ? 'Saving...' : 'Save expense',
               onPressed: _saving ? null : _save),
-            if (widget.entry != null) ...[
-              const SizedBox(height: 8),
-              TextButton.icon(onPressed: _saving ? null : _delete,
-                icon: const Icon(Icons.delete_outline), label: const Text('Delete expense')),
-            ],
-            const SizedBox(height: 5),
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ],
         ),
       ),
