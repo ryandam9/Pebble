@@ -55,13 +55,22 @@ abstract class ExpenseStore {
 }
 
 class SqliteExpenseStore implements ExpenseStore {
+  SqliteExpenseStore({this.databasePath});
+
+  /// Override in tests; normal installs use the platform application database path.
+  final String? databasePath;
   Database? _db;
+
+  Future<void> close() async {
+    await _db?.close();
+    _db = null;
+  }
 
   Future<Database> get _database async {
     if (_db != null) return _db!;
     final dir = await getDatabasesPath();
     _db = await openDatabase(
-      p.join(dir, 'pebble.sqlite'),
+      databasePath ?? p.join(dir, 'pebble.sqlite'),
       version: 1,
       onCreate: (db, _) => db.execute('''
         CREATE TABLE expenses (
