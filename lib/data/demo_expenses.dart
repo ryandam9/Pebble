@@ -7,14 +7,16 @@ Future<void> seedDemoExpenses(ExpenseStore store) async {
 
   final now = DateTime.now();
   final entries = [
-    (day: 29, merchant: 'Woolworths', description: 'Weekly groceries', category: 'Food', cents: 12700),
-    (day: 28, merchant: 'Metro', description: 'Public transport', category: 'Travel', cents: 12000),
-    (day: 27, merchant: 'Cafe Central', description: 'Lunch with friends', category: 'Food', cents: 28500),
-    (day: 26, merchant: 'Amazon', description: 'Household items', category: 'Shopping', cents: 17500),
-    (day: 25, merchant: 'Coles Express', description: 'Fuel', category: 'Travel', cents: 13600),
-    (day: 24, merchant: 'Target', description: 'Clothes', category: 'Shopping', cents: 13500),
+    (day: 29, merchant: 'Woolworths', description: 'Weekly groceries', category: 'Food', cents: 4875),
+    (day: 28, merchant: 'Metro', description: 'Public transport', category: 'Travel', cents: 1590),
+    (day: 27, merchant: 'Cafe Central', description: 'Coffee', category: 'Food', cents: 820),
+    (day: 26, merchant: 'Amazon', description: 'Household items', category: 'Shopping', cents: 3240),
+    (day: 25, merchant: 'Fuel', description: 'Petrol', category: 'Travel', cents: 7200),
+    (day: 24, merchant: 'Target', description: 'Clothes', category: 'Shopping', cents: 27760),
     (day: 23, merchant: 'Energy Australia', description: 'Electricity', category: 'Bills', cents: 18000),
     (day: 22, merchant: 'Internet', description: 'Internet subscription', category: 'Bills', cents: 9000),
+    (day: 21, merchant: 'Restaurant', description: 'Weekend dining', category: 'Food', cents: 35505),
+    (day: 20, merchant: 'Myki', description: 'Travel card top-up', category: 'Travel', cents: 16810),
   ];
   for (final entry in entries) {
     await store.add(Expense(
