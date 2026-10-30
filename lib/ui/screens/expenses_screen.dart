@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 
 import '../../core/design.dart';
@@ -89,25 +90,29 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ]),
         ),
         const SizedBox(height: 14),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(children: ['All', ...store.categoryNames].map((category) {
-            final selected = category == filter;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(category, style: TextStyle(fontSize: 12,
-                    color: selected ? Colors.white : PebbleColors.ink,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
-                selected: selected,
-                showCheckmark: false,
-                backgroundColor: category == 'All' ? Colors.white : categoryStyle(store, category).background,
-                selectedColor: PebbleColors.blue,
-                onSelected: (_) => setState(() => _filter = category),
-                side: BorderSide.none,
-              ),
-            );
-          }).toList()),
+        // Desktop: let a mouse drag scroll the chips sideways, like a finger.
+        ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: ['All', ...store.categoryNames].map((category) {
+              final selected = category == filter;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(category, style: TextStyle(fontSize: 12,
+                      color: selected ? Colors.white : PebbleColors.ink,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+                  selected: selected,
+                  showCheckmark: false,
+                  backgroundColor: category == 'All' ? Colors.white : categoryStyle(store, category).background,
+                  selectedColor: PebbleColors.blue,
+                  onSelected: (_) => setState(() => _filter = category),
+                  side: BorderSide.none,
+                ),
+              );
+            }).toList()),
+          ),
         ),
         const SizedBox(height: 14),
         if (rows.isEmpty)

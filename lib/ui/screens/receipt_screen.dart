@@ -69,6 +69,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     }
   }
 
+  static String _textLineSummary(String rawText) {
+    final lines = rawText.split('\n').where((line) => line.trim().isNotEmpty).length;
+    return switch (lines) {
+      0 => 'no text detected',
+      1 => '1 text line detected',
+      _ => '$lines text lines detected',
+    };
+  }
+
   void _snack(String message) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
@@ -219,7 +228,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  value: _effectiveCategory,
+                  initialValue: _effectiveCategory,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: widget.store.categoryNames.map((category) =>
                     DropdownMenuItem(value: category, child: Text(category))).toList(),
@@ -234,8 +243,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             child: Row(children: [
               const Icon(Icons.verified_user_outlined, color: PebbleColors.green),
               const SizedBox(width: 10),
-              Expanded(child: Text('Receipt attached · ' + draft.rawText.split('\n').length.toString() +
-                ' text lines detected. Nothing is saved until you confirm.',
+              Expanded(child: Text('Receipt attached · ${_textLineSummary(draft.rawText)}. '
+                'Nothing is saved until you confirm.',
                 style: const TextStyle(fontSize: 12))),
             ]),
           ),

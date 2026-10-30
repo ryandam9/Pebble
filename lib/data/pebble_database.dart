@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'storage.dart';
+
 part 'pebble_database.g.dart';
 
 class ExpenseEntries extends Table {
@@ -46,7 +48,11 @@ const defaultCategories = <(String, String, String)>[
 @DriftDatabase(tables: [ExpenseEntries, ExpenseCategories])
 class PebbleDatabase extends _$PebbleDatabase {
   PebbleDatabase(super.executor);
-  PebbleDatabase.open() : super(driftDatabase(name: 'pebble'));
+  PebbleDatabase.open()
+      : super(driftDatabase(
+          name: 'pebble',
+          native: const DriftNativeOptions(databaseDirectory: appDataDirectory),
+        ));
 
   @override
   int get schemaVersion => 2;
