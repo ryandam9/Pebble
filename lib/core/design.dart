@@ -67,7 +67,7 @@ class PebbleButton extends StatelessWidget {
         child: TextButton.icon(
           onPressed: onPressed,
           icon: Icon(icon ?? Icons.check, color: Colors.white),
-          label: Text(label, style: const TextStyle(fontWeight: FontWeight.w750, color: Colors.white)),
+          label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
           style: TextButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             foregroundColor: Colors.white,
@@ -87,8 +87,8 @@ ThemeData pebbleTheme() {
     fontFamily: 'Roboto',
     textTheme: const TextTheme(
       headlineLarge: TextStyle(fontSize: 31, fontWeight: FontWeight.w800, color: PebbleColors.ink),
-      headlineSmall: TextStyle(fontSize: 23, fontWeight: FontWeight.w750, color: PebbleColors.ink),
-      titleLarge: TextStyle(fontSize: 19, fontWeight: FontWeight.w750, color: PebbleColors.ink),
+      headlineSmall: TextStyle(fontSize: 23, fontWeight: FontWeight.w700, color: PebbleColors.ink),
+      titleLarge: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: PebbleColors.ink),
       bodyLarge: TextStyle(fontSize: 15, color: PebbleColors.ink),
       bodyMedium: TextStyle(fontSize: 13, color: PebbleColors.muted),
     ),
