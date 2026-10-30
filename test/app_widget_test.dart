@@ -21,7 +21,7 @@ void main() {
     await tester.tap(find.text('Add expense').first);
     await tester.pumpAndSettle();
     expect(find.text('Save expense'), findsOneWidget);
-    expect(find.text('Amount (AUD)'), findsOneWidget);
+    expect(find.text('AMOUNT (AUD)'), findsOneWidget);
   });
 
   testWidgets('home includes all five navigation items', (tester) async {
