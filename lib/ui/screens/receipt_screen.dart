@@ -10,6 +10,7 @@ import '../../data/pebble_store.dart';
 import '../../data/receipt_scanner.dart';
 import '../pebble_root.dart';
 import '../receipt_viewer.dart';
+import '../watercolor.dart';
 
 class ReceiptScreen extends StatefulWidget {
   const ReceiptScreen({required this.store, required this.onSaved, super.key});
@@ -117,13 +118,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   @override
   Widget build(BuildContext context) {
     final draft = _draft;
-    return PebblePage(
+    return WatercolorCanvas(child: PebblePage(
       title: 'Scan receipt',
       subtitle: 'Review the OCR result before saving',
       smallTitle: true,
       children: [
         if (draft == null) ...[
-          PebbleCard(
+          WatercolorPanel(
+            tint: Watercolor.sky,
             child: Column(children: [
               const SizedBox(height: 22),
               const CircleAvatar(
@@ -174,9 +176,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ]),
           ),
         ] else ...[
-          PebbleCard(
+          WatercolorPanel(
+            tint: Watercolor.paper,
             padding: EdgeInsets.zero,
-            child: ReceiptThumbnail(file: File(draft.image.path), height: 300),
+            child: ReceiptThumbnail(file: File(draft.image.path),
+              height: 370, fillWidth: true),
           ),
           const SizedBox(height: 16),
           Row(children: [
@@ -188,7 +192,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           const SizedBox(height: 8),
           Form(
             key: _form,
-            child: PebbleCard(
+            child: WatercolorPanel(
+              tint: const Color(0xFFFFFBF5),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Every field is editable. Verify the total against the photo.',
                   style: TextStyle(fontSize: 12, color: PebbleColors.muted)),
@@ -250,13 +255,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ]),
           ),
           const SizedBox(height: 14),
-          PebbleButton(label: _busy ? 'Saving...' : 'Confirm & save',
+          WatercolorSave(label: _busy ? 'Saving...' : 'Confirm & save',
             onPressed: _busy ? null : _save),
           const SizedBox(height: 10),
           TextButton(onPressed: _busy ? null : () => setState(() => _draft = null),
             child: const Text('Discard scan')),
         ],
       ],
-    );
+    ));
   }
 }
