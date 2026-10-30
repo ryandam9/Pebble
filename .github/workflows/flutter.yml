@@ -1,24 +1,53 @@
-name: Flutter checks
+name: Flutter checks and Linux visual verification
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  analyze-and-test:
+  flutter-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Install Linux desktop build and screenshot tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsqlite3-dev libsecret-1-dev xvfb xauth openbox xdotool scrot
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Generate Android platform scaffold
-        run: flutter create --platforms=android --project-name pebble .
-      - name: Install dependencies
+      - name: Enable Linux and generate platform projects
+        run: |
+          flutter config --enable-linux-desktop
+          flutter create --platforms=linux,android --project-name pebble .
+          flutter doctor -v
+      - name: Install Flutter dependencies
         run: flutter pub get
-      - name: Analyze
+      - name: Analyze Dart code
         run: flutter analyze
-      - name: Test
+      - name: Run unit and widget tests (including SQLite FFI)
         run: flutter test
+      - name: Build runnable Linux desktop application
+        run: flutter build linux --release --dart-define=PEBBLE_DEMO=true
+      - name: Run Linux app and capture actual screens
+        run: |
+          chmod +x scripts/capture_linux.sh
+          xvfb-run -a -s "-screen 0 1280x1024x24" scripts/capture_linux.sh
+      - name: Upload Linux screenshots and application logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebble-linux-screenshots
+          path: |
+            build/linux-screenshots/
+          if-no-files-found: warn
+      - name: Upload Linux release executable
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pebble-linux-release
+          path: build/linux/x64/release/bundle/
