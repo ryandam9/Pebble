@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'data/demo_expenses.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -8,9 +11,17 @@ import 'core/formatters.dart';
 import 'data/expense_repository.dart';
 import 'theme/pebble_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(PebbleApp(store: SqliteExpenseStore()));
+  if (Platform.isLinux || Platform.isWindows) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+  final store = SqliteExpenseStore();
+  if (const bool.fromEnvironment('PEBBLE_DEMO')) {
+    await seedDemoExpenses(store);
+  }
+  runApp(PebbleApp(store: store));
 }
 
 const categories = ['Groceries', 'Food', 'Travel', 'Bills', 'Shopping', 'Health', 'Other'];
