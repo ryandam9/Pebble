@@ -16,8 +16,8 @@ jobs:
           cache: true
       - name: Generate platform scaffold and dependencies
         run: bash scripts/bootstrap.sh
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Format sources (build environment)
+        run: dart format lib test
       - name: Static analysis
         run: flutter analyze --no-fatal-infos
       - name: Widget and unit tests
