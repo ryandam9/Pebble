@@ -83,31 +83,41 @@ class _LocationFieldState extends State<LocationField> {
         ])
       else
         Container(
-          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           decoration: BoxDecoration(
             color: const Color(0xFFF1F6FE),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Row(children: [
-            const Icon(Icons.place_outlined, color: PebbleColors.blue),
-            const SizedBox(width: 10),
-            Expanded(child: Text(location.label, maxLines: 3, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600))),
-            IconButton(
-              tooltip: 'Open in maps',
-              onPressed: () => _openMap(location),
-              icon: const Icon(Icons.map_outlined, color: PebbleColors.blue),
-            ),
-            IconButton(
-              tooltip: 'Change location',
-              onPressed: _search,
-              icon: const Icon(Icons.edit_location_alt_outlined, color: PebbleColors.muted),
-            ),
-            IconButton(
-              tooltip: 'Remove location',
-              onPressed: () => widget.onChanged(null),
-              icon: const Icon(Icons.close, color: PebbleColors.muted),
-            ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.place_outlined, color: PebbleColors.blue),
+              const SizedBox(width: 10),
+              Expanded(child: Text(location.label, maxLines: 3, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600))),
+            ]),
+            const SizedBox(height: 4),
+            // Labelled actions: icons alone don't say what they do.
+            Wrap(spacing: 4, children: [
+              TextButton.icon(
+                key: const Key('openInMapsButton'),
+                onPressed: () => _openMap(location),
+                icon: const Icon(Icons.map_outlined, size: 18),
+                label: const Text('Open in Maps'),
+              ),
+              TextButton.icon(
+                key: const Key('changeLocationButton'),
+                onPressed: _search,
+                icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+                label: const Text('Change'),
+              ),
+              TextButton.icon(
+                key: const Key('removeLocationButton'),
+                onPressed: () => widget.onChanged(null),
+                style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Remove'),
+              ),
+            ]),
           ]),
         ),
     ]);
