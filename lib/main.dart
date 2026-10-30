@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'data/demo_expenses.dart';
 import 'package:flutter/material.dart';
@@ -279,22 +280,52 @@ class _PebbleHomeState extends State<PebbleHome> {
   );
 
   Widget _categoryBreakdown() {
-    final total = visible.fold<int>(0, (s, e) => s + e.amountCents);
-    return Column(children: [
-      for (final category in categories.where((c) => visible.any((e) => e.category == c)))
-        Padding(padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(children: [
-            CircleAvatar(radius: 5, backgroundColor: categoryColor(category)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(category)),
-            Text(money(visible.where((e) => e.category == category)
-              .fold<int>(0, (s, e) => s + e.amountCents)),
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-          ])),
-      if (total == 0) _empty(),
-      if (total != 0) Padding(padding: const EdgeInsets.only(top: 10),
-        child: Text('Total: ${money(total)}', style: const TextStyle(
-          fontWeight: FontWeight.w700, color: PebbleColors.blue))),
+    final totals = <String, int>{
+      for (final category in categories)
+        category: visible.where((e) => e.category == category)
+            .fold<int>(0, (sum, e) => sum + e.amountCents),
+    };
+    final total = totals.values.fold<int>(0, (a, b) => a + b);
+    if (total == 0) return _empty();
+    final order = ['Food', 'Travel', 'Shopping', 'Bills', 'Groceries', 'Health', 'Other'];
+    final active = order.where((c) => totals[c]! > 0).toList();
+
+    return Row(children: [
+      SizedBox(
+        width: 134,
+        height: 142,
+        child: Stack(alignment: Alignment.center, children: [
+          CustomPaint(
+            size: const Size.square(120),
+            painter: SpendingDonut(
+              fractions: active.map((c) => totals[c]! / total).toList(),
+              colors: active.map(categoryColor).toList(),
+            ),
+          ),
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            FittedBox(child: Text(money(total), style: const TextStyle(
+              fontWeight: FontWeight.w800, fontSize: 18))),
+            const Text('Total', style: TextStyle(
+              fontSize: 11, color: PebbleColors.muted)),
+          ]),
+        ]),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Column(children: [
+        for (final c in active)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            child: Row(children: [
+              CircleAvatar(radius: 5, backgroundColor: categoryColor(c)),
+              const SizedBox(width: 7),
+              Expanded(child: Text(c, maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12))),
+              Text(money(totals[c]!), style: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+      ])),
     ]);
   }
 
@@ -315,8 +346,18 @@ class _PebbleHomeState extends State<PebbleHome> {
       style: const TextStyle(fontWeight: FontWeight.w700)),
     subtitle: Text('${DateFormat('d MMM yyyy').format(item.date)} · ${item.category}',
       style: const TextStyle(color: PebbleColors.muted, fontSize: 12)),
-    trailing: Text('-${money(item.amountCents)}',
-      style: const TextStyle(fontWeight: FontWeight.w700)),
+    trailing: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('-${money(item.amountCents)}',
+          style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text(item.category, style: TextStyle(
+          fontSize: 11, color: categoryColor(item.category),
+          fontWeight: FontWeight.w700)),
+      ],
+    ),
     onTap: () => showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -402,8 +443,19 @@ class _PebbleHomeState extends State<PebbleHome> {
     ...visible.where((e) => (_filter == 'All' || e.category == _filter) &&
         ('${e.description} ${e.merchant} ${e.category}'.toLowerCase()
           .contains(_searchController.text.toLowerCase()))).map((e) =>
-      Padding(padding: const EdgeInsets.only(bottom: 10),
-        child: _section('', _expenseRow(e)))),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [BoxShadow(
+              color: Color(0x0A334A68), blurRadius: 12, offset: Offset(0, 4))],
+          ),
+          child: _expenseRow(e),
+        ),
+      )),
     if (visible.where((e) => (_filter == 'All' || e.category == _filter) &&
         ('${e.description} ${e.merchant} ${e.category}'.toLowerCase()
             .contains(_searchController.text.toLowerCase()))).isEmpty) _empty(),
@@ -722,4 +774,33 @@ class _ExpenseFormState extends State<ExpenseForm> {
     notes.dispose();
     super.dispose();
   }
+}
+
+class SpendingDonut extends CustomPainter {
+  const SpendingDonut({required this.fractions, required this.colors});
+
+  final List<double> fractions;
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide * 0.39;
+    final oval = Rect.fromCircle(center: centre, radius: radius);
+    var angle = -math.pi / 2;
+    for (var index = 0; index < fractions.length; index++) {
+      final sweep = fractions[index] * 2 * math.pi;
+      final paint = Paint()
+        ..color = colors[index]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 17;
+      canvas.drawArc(oval, angle, sweep, false, paint);
+      angle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SpendingDonut oldDelegate) =>
+      oldDelegate.fractions.toString() != fractions.toString() ||
+      oldDelegate.colors.toString() != colors.toString();
 }
