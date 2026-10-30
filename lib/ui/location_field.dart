@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/design.dart';
+import 'watercolor.dart';
+import 'expense_map_preview.dart';
 import '../data/expense_location.dart';
 import '../data/location_service.dart';
 
@@ -61,60 +63,77 @@ class _LocationFieldState extends State<LocationField> {
   Widget build(BuildContext context) {
     final location = widget.value;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Location', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 10),
+      const WatercolorSection(title: 'Location'),
+      const SizedBox(height: 9),
       if (location == null)
-        Row(children: [
-          Expanded(child: OutlinedButton.icon(
-            key: const Key('currentLocationButton'),
-            onPressed: _locating ? null : _useCurrentLocation,
-            icon: _locating
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.my_location),
-            label: Text(_locating ? 'Locating…' : 'Current location'),
-          )),
-          const SizedBox(width: 8),
-          Expanded(child: OutlinedButton.icon(
-            key: const Key('searchAddressButton'),
-            onPressed: _locating ? null : _search,
-            icon: const Icon(Icons.search),
-            label: const Text('Search address'),
-          )),
-        ])
+        WatercolorPanel(
+          tint: const Color(0xFFF1F6FE),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Row(children: [
+              WatercolorIcon(Icons.location_on_outlined),
+              SizedBox(width: 10),
+              Expanded(child: Text('Add the place you visited',
+                style: TextStyle(color: Watercolor.ink,
+                  fontWeight: FontWeight.w600))),
+            ]),
+            const SizedBox(height: 9),
+            Wrap(spacing: 8, runSpacing: 3, children: [
+              TextButton.icon(
+                key: const Key('currentLocationButton'),
+                onPressed: _locating ? null : _useCurrentLocation,
+                icon: _locating
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location),
+                label: Text(_locating ? 'Locating…' : 'Current location'),
+              ),
+              TextButton.icon(
+                key: const Key('searchAddressButton'),
+                onPressed: _locating ? null : _search,
+                icon: const Icon(Icons.search),
+                label: const Text('Search address'),
+              ),
+            ]),
+          ]),
+        )
       else
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F6FE),
-            borderRadius: BorderRadius.circular(14),
-          ),
+        WatercolorPanel(
+          tint: const Color(0xFFF3F7FF),
+          padding: const EdgeInsets.all(10),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.place_outlined, color: PebbleColors.blue),
-              const SizedBox(width: 10),
-              Expanded(child: Text(location.label, maxLines: 3, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600))),
+              const WatercolorIcon(Icons.location_on_outlined),
+              const SizedBox(width: 9),
+              Expanded(child: Text(location.label,
+                maxLines: 3, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13,
+                  color: Watercolor.ink, fontWeight: FontWeight.w700))),
             ]),
-            const SizedBox(height: 4),
-            // Labelled actions: icons alone don't say what they do.
-            Wrap(spacing: 4, children: [
+            const SizedBox(height: 9),
+            ExpenseMapPreview(
+              location: location,
+              onOpen: () => _openMap(location),
+            ),
+            const SizedBox(height: 5),
+            Wrap(spacing: 3, runSpacing: 2, children: [
               TextButton.icon(
                 key: const Key('openInMapsButton'),
                 onPressed: () => _openMap(location),
-                icon: const Icon(Icons.map_outlined, size: 18),
+                icon: const Icon(Icons.map_outlined, size: 17),
                 label: const Text('Open in Maps'),
               ),
               TextButton.icon(
                 key: const Key('changeLocationButton'),
                 onPressed: _search,
-                icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+                icon: const Icon(Icons.edit_location_alt_outlined, size: 17),
                 label: const Text('Change'),
               ),
               TextButton.icon(
                 key: const Key('removeLocationButton'),
                 onPressed: () => widget.onChanged(null),
-                style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
-                icon: const Icon(Icons.close, size: 18),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFD3433E)),
+                icon: const Icon(Icons.close, size: 17),
                 label: const Text('Remove'),
               ),
             ]),
