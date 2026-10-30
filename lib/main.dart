@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/design.dart';
 import 'data/pebble_database.dart';
 import 'data/pebble_store.dart';
 import 'ui/pebble_root.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('en_AU');
   final store = PebbleStore(PebbleDatabase.open())..start();
   runApp(PebbleApp(store: store));
 }
