@@ -160,7 +160,7 @@ class PebblePage extends StatelessWidget {
                   Expanded(child: Text(title, style: smallTitle
                       ? Theme.of(context).textTheme.headlineSmall
                       : Theme.of(context).textTheme.headlineLarge)),
-                  ?action,
+                  if (action != null) action!,
                 ],
               ),
               if (subtitle != null) ...[
