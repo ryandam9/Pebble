@@ -15,8 +15,12 @@ class PebbleStore extends ChangeNotifier {
 
   final PebbleDatabase database;
   StreamSubscription<List<ExpenseEntry>>? _subscription;
+  StreamSubscription<List<ExpenseCategory>>? _categorySubscription;
+  bool _expensesLoaded = false;
+  bool _categoriesLoaded = false;
 
   List<ExpenseEntry> expenses = const [];
+  List<ExpenseCategory> categories = const [];
   bool isReady = false;
   String? loadError;
 
@@ -24,17 +28,73 @@ class PebbleStore extends ChangeNotifier {
     _subscription ??= database.watchExpenses().listen(
       (rows) {
         expenses = rows;
-        isReady = true;
-        loadError = null;
-        notifyListeners();
+        _expensesLoaded = true;
+        _loaded();
       },
-      onError: (Object error) {
-        loadError = error.toString();
-        isReady = true;
-        notifyListeners();
+      onError: _failed,
+    );
+    _categorySubscription ??= database.watchCategories().listen(
+      (rows) {
+        categories = rows;
+        _categoriesLoaded = true;
+        _loaded();
       },
+      onError: _failed,
     );
   }
+
+  void _loaded() {
+    isReady = _expensesLoaded && _categoriesLoaded;
+    if (isReady) loadError = null;
+    notifyListeners();
+  }
+
+  void _failed(Object error) {
+    loadError = error.toString();
+    isReady = true;
+    notifyListeners();
+  }
+
+  List<String> get categoryNames => [for (final c in categories) c.name];
+
+  ExpenseCategory? categoryNamed(String name) {
+    for (final category in categories) {
+      if (category.name == name) return category;
+    }
+    return null;
+  }
+
+  int expenseCountFor(String category) => expenses.where((e) => e.category == category).length;
+
+  /// Returns an error message, or null when [name] can be used.
+  /// [editingId] is the category being renamed, which may keep its own name.
+  String? validateCategoryName(String name, {int? editingId}) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'Enter a name';
+    if (trimmed.length > 30) return 'Use 30 characters or fewer';
+    if (trimmed.toLowerCase() == 'all') return '"All" is reserved for the filter';
+    final clash = categories.any((c) => c.id != editingId && c.name.toLowerCase() == trimmed.toLowerCase());
+    return clash ? 'A category with this name already exists' : null;
+  }
+
+  Future<String> addCategory({required String name, required String iconKey, required String colorKey}) async {
+    final error = validateCategoryName(name);
+    if (error != null) throw ArgumentError(error);
+    final trimmed = name.trim();
+    await database.addCategory(name: trimmed, iconKey: iconKey, colorKey: colorKey);
+    return trimmed;
+  }
+
+  Future<String> updateCategory(ExpenseCategory category,
+      {required String name, required String iconKey, required String colorKey}) async {
+    final error = validateCategoryName(name, editingId: category.id);
+    if (error != null) throw ArgumentError(error);
+    final trimmed = name.trim();
+    await database.updateCategory(category.id, name: trimmed, iconKey: iconKey, colorKey: colorKey);
+    return trimmed;
+  }
+
+  Future<void> deleteCategory(ExpenseCategory category) => database.deleteCategory(category.id);
 
   Future<String> save({
     String? id,
@@ -131,6 +191,7 @@ class PebbleStore extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    _categorySubscription?.cancel();
     database.close();
     super.dispose();
   }

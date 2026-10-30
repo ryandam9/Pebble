@@ -5,10 +5,10 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/design.dart';
 import '../../core/formatting.dart';
+import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../../data/receipt_scanner.dart';
 import '../pebble_root.dart';
-import '../ui_helpers.dart';
 
 class ReceiptScreen extends StatefulWidget {
   const ReceiptScreen({required this.store, required this.onSaved, super.key});
@@ -29,7 +29,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
   ReceiptDraft? _draft;
   DateTime _date = DateTime.now();
-  String _category = 'Groceries';
+  String? _category;
+
+  /// The picked category if it still exists, otherwise the first one.
+  String get _effectiveCategory {
+    final names = widget.store.categoryNames;
+    if (_category != null && names.contains(_category)) return _category!;
+    return names.isEmpty ? otherCategory : names.first;
+  }
   bool _busy = false;
 
   @override
@@ -81,7 +88,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         date: _date,
         amountCents: amount,
         description: _description.text,
-        category: _category,
+        category: _effectiveCategory,
         merchant: _merchant.text,
         notes: _tax.text.trim().isEmpty ? null : 'Receipt GST (AUD): ' + _tax.text.trim(),
         image: _draft!.image,
@@ -212,11 +219,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  value: _category,
+                  value: _effectiveCategory,
                   decoration: const InputDecoration(labelText: 'Category'),
-                  items: categoryNames.map((category) =>
+                  items: widget.store.categoryNames.map((category) =>
                     DropdownMenuItem(value: category, child: Text(category))).toList(),
-                  onChanged: (value) => setState(() => _category = value ?? 'Groceries'),
+                  onChanged: (value) => setState(() => _category = value),
                 ),
               ]),
             ),

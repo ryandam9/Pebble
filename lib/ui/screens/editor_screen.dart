@@ -9,6 +9,7 @@ import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
 import '../ui_helpers.dart';
+import 'categories_screen.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -43,7 +44,8 @@ class _EditorScreenState extends State<EditorScreen> {
     super.initState();
     final item = widget.entry;
     _date = item?.date ?? DateTime.now();
-    _category = item?.category ?? 'Groceries';
+    _category = item?.category ??
+        (widget.store.categoryNames.isEmpty ? otherCategory : widget.store.categoryNames.first);
     _paymentMethod = item?.paymentMethod ?? 'Card';
     _amount = TextEditingController(text: item == null ? '' : (item.amountCents / 100).toStringAsFixed(2));
     _description = TextEditingController(text: item?.description ?? '');
@@ -78,6 +80,11 @@ class _EditorScreenState extends State<EditorScreen> {
     } catch (error) {
       if (mounted) _message('Could not open photo library: ' + error.toString());
     }
+  }
+
+  Future<void> _newCategory() async {
+    final name = await showCategoryEditor(context, widget.store);
+    if (mounted && name != null) setState(() => _category = name);
   }
 
   void _message(String text) {
@@ -207,25 +214,28 @@ class _EditorScreenState extends State<EditorScreen> {
             const SizedBox(height: 5),
             const Text('Category', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
-            LayoutBuilder(builder: (context, constraints) {
+            // Rebuild when a category is added from the "New" tile below.
+            ListenableBuilder(listenable: widget.store, builder: (context, _) => LayoutBuilder(builder: (context, constraints) {
               final tileWidth = (constraints.maxWidth - 24) / 4;
+              final names = widget.store.categoryNames;
               return Wrap(
                 spacing: 8, runSpacing: 8,
-                children: List.generate(categoryNames.length, (i) {
-                  final category = categoryNames[i];
+                children: [...List.generate(names.length, (i) {
+                  final category = names[i];
                   final selected = _category == category;
+                  final style = categoryStyle(widget.store, category);
                   return InkWell(
                     onTap: () => setState(() => _category = category),
                     borderRadius: BorderRadius.circular(14),
                     child: Container(
                       width: tileWidth, height: 74,
                       decoration: BoxDecoration(
-                        color: categoryBackgrounds[i],
+                        color: style.background,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: selected ? categoryForegrounds[i] : Colors.transparent, width: 2),
+                        border: Border.all(color: selected ? style.foreground : Colors.transparent, width: 2),
                       ),
                       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(categoryIcons[i], color: categoryForegrounds[i]),
+                        Icon(style.icon, color: style.foreground),
                         const SizedBox(height: 5),
                         Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
@@ -233,8 +243,25 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                   );
                 }),
+                InkWell(
+                  key: const Key('newCategoryTile'),
+                  onTap: _newCategory,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: tileWidth, height: 74,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: PebbleColors.stroke, width: 2),
+                    ),
+                    child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.add, color: PebbleColors.blue),
+                      SizedBox(height: 5),
+                      Text('New', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: PebbleColors.blue)),
+                    ]),
+                  ),
+                )],
               );
-            }),
+            })),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               value: _paymentMethod,
