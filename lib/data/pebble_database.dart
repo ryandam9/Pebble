@@ -6,7 +6,7 @@ part 'pebble_database.g.dart';
 class ExpenseEntries extends Table {
   TextColumn get id => text()();
   DateTimeColumn get date => dateTime()();
-  IntColumn get amountCents => integer().check(amountCents.isBiggerThanValue(0))();
+  IntColumn get amountCents => integer()();
   TextColumn get description => text().withLength(min: 1, max: 240)();
   TextColumn get category => text().withDefault(const Constant('Other'))();
   TextColumn get paymentMethod => text().nullable()();
