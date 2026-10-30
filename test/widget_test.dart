@@ -35,7 +35,7 @@ void main() {
     ).first;
     await tester.scrollUntilVisible(find.byKey(const Key('descriptionInput')), 150, scrollable: editorScroll);
     await tester.enterText(find.byKey(const Key('descriptionInput')), 'Groceries');
-    await tester.testTextInput.hide();
+    tester.testTextInput.hide();
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Save expense'), 250, scrollable: editorScroll);
     await tester.ensureVisible(find.text('Save expense'));
