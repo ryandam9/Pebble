@@ -44,6 +44,7 @@ jobs:
           name: pebble-linux-screenshots
           path: |
             build/linux-screenshots/
+            docs/mockups/*.svg
           if-no-files-found: warn
       - name: Upload Linux release executable
         if: success()
