@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/design.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
+import 'categories_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({required this.store, super.key});
@@ -31,6 +32,11 @@ class SettingsScreen extends StatelessWidget {
           _SettingRow(icon: Icons.storage_outlined, title: 'Local database',
             detail: store.expenses.length.toString() + ' expenses recorded'),
           const Divider(color: PebbleColors.stroke),
+          _SettingRow(icon: Icons.category_outlined, title: 'Categories',
+            detail: '${store.categories.length} categories · add, rename or delete',
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => CategoriesScreen(store: store)))),
+          const Divider(color: PebbleColors.stroke),
           _SettingRow(icon: Icons.receipt_long_outlined, title: 'Receipt photos',
             detail: store.expenses.where((e) => e.receiptPath != null).length.toString() + ' attached'),
           const Divider(color: PebbleColors.stroke),
@@ -54,14 +60,15 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _SettingRow extends StatelessWidget {
-  const _SettingRow({required this.icon, required this.title, required this.detail});
+  const _SettingRow({required this.icon, required this.title, required this.detail, this.onTap});
   final IconData icon;
   final String title;
   final String detail;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(children: [
         Icon(icon, color: PebbleColors.blue),
@@ -71,7 +78,9 @@ class _SettingRow extends StatelessWidget {
           const SizedBox(height: 4),
           Text(detail, style: const TextStyle(fontSize: 12, color: PebbleColors.muted)),
         ])),
+        if (onTap != null) const Icon(Icons.chevron_right, color: PebbleColors.muted),
       ]),
     );
+    return onTap == null ? row : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: row);
   }
 }

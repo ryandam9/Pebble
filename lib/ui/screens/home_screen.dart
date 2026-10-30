@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
+import '../../core/category_palette.dart';
 import '../../core/design.dart';
 import '../../core/formatting.dart';
 import '../../data/pebble_database.dart';
@@ -79,15 +81,15 @@ class HomeScreen extends StatelessWidget {
           Row(
             children: List.generate(categories.length, (i) {
               final entry = categories[i];
-              final index = categoryIndex(entry.key);
+              final style = categoryStyle(store, entry.key);
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(right: i == categories.length - 1 ? 0 : 8),
                   child: PebbleCard(
-                    color: categoryBackgrounds[index],
+                    color: style.background,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Icon(categoryIcons[index], color: categoryForegrounds[index], size: 23),
+                      Icon(style.icon, color: style.foreground, size: 23),
                       const SizedBox(height: 10),
                       FittedBox(
                         alignment: Alignment.centerLeft,
@@ -128,7 +130,8 @@ class HomeScreen extends StatelessWidget {
                 SizedBox(
                   width: 145, height: 145,
                   child: CustomPaint(
-                    painter: SpendingRingPainter(entries: top, total: total),
+                    painter: SpendingRingPainter(entries: top, total: total,
+                      colors: [for (final e in top) categoryStyle(store, e.key).foreground]),
                     child: Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
                         FittedBox(child: Text(formatCents(total), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
@@ -140,11 +143,10 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 13),
                 Expanded(child: Column(
                   children: top.take(5).map((e) {
-                    final idx = categoryIndex(e.key);
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Row(children: [
-                        CircleAvatar(radius: 5, backgroundColor: categoryForegrounds[idx]),
+                        CircleAvatar(radius: 5, backgroundColor: categoryStyle(store, e.key).foreground),
                         const SizedBox(width: 8),
                         Expanded(child: Text(e.key, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                         Text(((e.value / total) * 100).round().toString() + '%',
@@ -167,7 +169,7 @@ class HomeScreen extends StatelessWidget {
             if (recent.isEmpty)
               const EmptyMessage(title: 'No expenses yet', message: 'Record one to start your history.')
             else
-              ...recent.map((item) => _RecentLine(entry: item)),
+              ...recent.map((item) => _RecentLine(entry: item, style: categoryStyle(store, item.category))),
           ]),
         ),
       ],
@@ -219,17 +221,17 @@ class _QuickAction extends StatelessWidget {
 }
 
 class _RecentLine extends StatelessWidget {
-  const _RecentLine({required this.entry});
+  const _RecentLine({required this.entry, required this.style});
   final ExpenseEntry entry;
+  final CategoryStyle style;
 
   @override
   Widget build(BuildContext context) {
-    final index = categoryIndex(entry.category);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(children: [
-        CircleAvatar(radius: 18, backgroundColor: categoryBackgrounds[index],
-          child: Icon(categoryIcons[index], color: categoryForegrounds[index], size: 19)),
+        CircleAvatar(radius: 18, backgroundColor: style.background,
+          child: Icon(style.icon, color: style.foreground, size: 19)),
         const SizedBox(width: 11),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(entry.merchant ?? entry.description, maxLines: 1, overflow: TextOverflow.ellipsis,
@@ -244,9 +246,12 @@ class _RecentLine extends StatelessWidget {
 }
 
 class SpendingRingPainter extends CustomPainter {
-  SpendingRingPainter({required this.entries, required this.total});
+  SpendingRingPainter({required this.entries, required this.total, required this.colors});
   final List<MapEntry<String, int>> entries;
   final int total;
+
+  /// One colour per entry, in the same order.
+  final List<Color> colors;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -255,10 +260,11 @@ class SpendingRingPainter extends CustomPainter {
     final base = Paint()..color = PebbleColors.stroke..strokeWidth = 16..style = PaintingStyle.stroke;
     canvas.drawCircle(center, radius, base);
     var startAngle = -math.pi / 2;
-    for (final item in entries) {
+    for (var i = 0; i < entries.length; i++) {
+      final item = entries[i];
       final sweep = (item.value / total) * 2 * math.pi;
       final pen = Paint()
-        ..color = categoryForegrounds[categoryIndex(item.key)]
+        ..color = colors[i]
         ..strokeWidth = 16
         ..strokeCap = StrokeCap.butt
         ..style = PaintingStyle.stroke;
@@ -269,5 +275,7 @@ class SpendingRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant SpendingRingPainter oldDelegate) =>
-      total != oldDelegate.total || entries.toString() != oldDelegate.entries.toString();
+      total != oldDelegate.total ||
+      entries.toString() != oldDelegate.entries.toString() ||
+      !listEquals(colors, oldDelegate.colors);
 }

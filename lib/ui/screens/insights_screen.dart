@@ -45,7 +45,8 @@ class InsightsScreen extends StatelessWidget {
               SizedBox(
                 width: 140, height: 140,
                 child: CustomPaint(
-                  painter: SpendingRingPainter(entries: entries, total: total),
+                  painter: SpendingRingPainter(entries: entries, total: total,
+                    colors: [for (final e in entries) categoryStyle(store, e.key).foreground]),
                   child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Text(formatCents(total), textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
@@ -58,7 +59,7 @@ class InsightsScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   child: Row(children: [
-                    CircleAvatar(radius: 5, backgroundColor: categoryForegrounds[categoryIndex(e.key)]),
+                    CircleAvatar(radius: 5, backgroundColor: categoryStyle(store, e.key).foreground),
                     const SizedBox(width: 7),
                     Expanded(child: Text(e.key, maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12))),

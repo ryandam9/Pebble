@@ -1,48 +1,33 @@
 import 'package:flutter/material.dart';
+import '../core/category_palette.dart';
 import '../core/design.dart';
+import '../data/pebble_database.dart';
+import '../data/pebble_store.dart';
 
-const categoryNames = <String>['Groceries', 'Food', 'Transport', 'Shopping', 'Bills', 'Health', 'Other'];
-const categoryIcons = <IconData>[
-  Icons.local_grocery_store_outlined,
-  Icons.restaurant_outlined,
-  Icons.directions_car_outlined,
-  Icons.shopping_bag_outlined,
-  Icons.receipt_long_outlined,
-  Icons.favorite_outline,
-  Icons.category_outlined,
-];
-const categoryBackgrounds = <Color>[
-  Color(0xFFE6F7ED), Color(0xFFFFEFEB), Color(0xFFEAF2FF),
-  Color(0xFFF1EBFF), Color(0xFFFFF4D8), Color(0xFFFCEDF3),
-  Color(0xFFEDF0F5),
-];
-const categoryForegrounds = <Color>[
-  PebbleColors.green, Color(0xFFE9715C), PebbleColors.blue,
-  PebbleColors.purple, PebbleColors.orange, Color(0xFFE26A9B),
-  PebbleColors.muted,
-];
-
-int categoryIndex(String category) {
-  final index = categoryNames.indexOf(category);
-  return index < 0 ? categoryNames.length - 1 : index;
+/// Icon and colours for a category name; unknown names look like "Other".
+CategoryStyle categoryStyle(PebbleStore store, String name) {
+  final category = store.categoryNamed(name) ?? store.categoryNamed(otherCategory);
+  return category == null
+      ? CategoryStyle.fallback
+      : CategoryStyle.fromKeys(category.iconKey, category.colorKey);
 }
 
 class CategoryBadge extends StatelessWidget {
-  const CategoryBadge(this.category, {super.key, this.compact = false});
+  const CategoryBadge(this.category, {required this.style, super.key, this.compact = false});
   final String category;
+  final CategoryStyle style;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final index = categoryIndex(category);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 12, vertical: 6),
       decoration: BoxDecoration(
-        color: categoryBackgrounds[index],
+        color: style.background,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Text(category, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(
-        color: categoryForegrounds[index], fontSize: compact ? 11 : 12, fontWeight: FontWeight.w600,
+        color: style.foreground, fontSize: compact ? 11 : 12, fontWeight: FontWeight.w600,
       )),
     );
   }

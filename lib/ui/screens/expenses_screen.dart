@@ -42,9 +42,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     final query = _search.text.toLowerCase().trim();
+    final store = widget.store;
+    // A filtered category may have been renamed or deleted since it was picked.
+    final filter = store.categoryNames.contains(_filter) ? _filter : 'All';
     final rows = widget.store.expenses.where((e) {
       final inMonth = e.date.year == _month.year && e.date.month == _month.month;
-      final inCategory = _filter == 'All' || e.category == _filter;
+      final inCategory = filter == 'All' || e.category == filter;
       final inSearch = query.isEmpty ||
           e.description.toLowerCase().contains(query) ||
           (e.merchant?.toLowerCase().contains(query) ?? false) ||
@@ -88,9 +91,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         const SizedBox(height: 14),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: Row(children: ['All', ...categoryNames].map((category) {
-            final selected = category == _filter;
-            final index = categoryIndex(category);
+          child: Row(children: ['All', ...store.categoryNames].map((category) {
+            final selected = category == filter;
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
@@ -99,7 +101,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
                 selected: selected,
                 showCheckmark: false,
-                backgroundColor: category == 'All' ? Colors.white : categoryBackgrounds[index],
+                backgroundColor: category == 'All' ? Colors.white : categoryStyle(store, category).background,
                 selectedColor: PebbleColors.blue,
                 onSelected: (_) => setState(() => _filter = category),
                 side: BorderSide.none,
@@ -117,7 +119,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             PebbleButton(label: 'Add expense', icon: Icons.add, onPressed: widget.onAdd),
           ]))
         else
-          ...rows.map((entry) => Padding(
+          ...rows.map((entry) {
+            final style = categoryStyle(store, entry.category);
+            return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: PebbleCard(
               onTap: () => widget.onEdit(entry),
@@ -125,8 +129,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               child: Row(children: [
                 CircleAvatar(
                   radius: 23,
-                  backgroundColor: categoryForegrounds[categoryIndex(entry.category)],
-                  child: Icon(categoryIcons[categoryIndex(entry.category)], color: Colors.white),
+                  backgroundColor: style.foreground,
+                  child: Icon(style.icon, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -148,13 +152,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   Text('−' + formatCents(entry.amountCents),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  CategoryBadge(entry.category, compact: true),
+                  CategoryBadge(entry.category, style: style, compact: true),
                 ]),
                 const SizedBox(width: 4),
                 const Icon(Icons.chevron_right, size: 18, color: PebbleColors.muted),
               ]),
             ),
-          )),
+          );
+          }),
         const SizedBox(height: 6),
         PebbleButton(label: 'Add expense', icon: Icons.add, onPressed: widget.onAdd),
       ],
