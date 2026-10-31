@@ -10,20 +10,18 @@ Future<void> showScannedTextDialog(BuildContext context, String rawText) {
   return showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
+      // Long receipts would otherwise stretch the dialog to the full screen.
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.6),
       title: const Text('Scanned text'),
       content: SizedBox(
         width: double.maxFinite,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Stretch so the text area, and its scrollbar, span the dialog's full
+        // width rather than only the longest line.
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(lineCount == 1 ? '1 line' : '$lineCount lines',
             style: const TextStyle(fontSize: 12, color: PebbleColors.muted)),
           const SizedBox(height: 8),
-          Flexible(child: SingleChildScrollView(
-            child: SelectableText(
-              rawText.isEmpty ? '(no text detected)' : rawText,
-              key: const Key('scannedTextBody'),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.4),
-            ),
-          )),
+          Flexible(child: _ScrollingText(rawText.isEmpty ? '(no text detected)' : rawText)),
         ]),
       ),
       actions: [
@@ -41,4 +39,42 @@ Future<void> showScannedTextDialog(BuildContext context, String rawText) {
       ],
     ),
   );
+}
+
+/// The text in its own scroll area, with a scrollbar that stays visible so
+/// it's clear when there is more to read.
+class _ScrollingText extends StatefulWidget {
+  const _ScrollingText(this.text);
+  final String text;
+
+  @override
+  State<_ScrollingText> createState() => _ScrollingTextState();
+}
+
+class _ScrollingTextState extends State<_ScrollingText> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      controller: _controller,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _controller,
+        // Keeps the text clear of the scrollbar.
+        padding: const EdgeInsets.only(right: 12),
+        child: SelectableText(
+          widget.text,
+          key: const Key('scannedTextBody'),
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.4),
+        ),
+      ),
+    );
+  }
 }
