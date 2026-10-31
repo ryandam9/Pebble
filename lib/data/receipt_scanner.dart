@@ -78,9 +78,10 @@ class ReceiptParser {
         if (total != null) break;
       }
     }
-    // Two-column receipts (e.g. card terminal slips) are read label column
-    // first, so "Total AUD:" and its amount end up on different lines. Use the
-    // first line after the last total label that is only an amount.
+    // Two-column receipts (card terminal slips, supermarket dockets) are read
+    // label column first, so "Total $" and its amount end up on different
+    // lines, often with the item prices in between. The total is never smaller
+    // than an item price, so use the largest amount-only line after the label.
     if (total == null) {
       final totalLabel = RegExp(r'\b(?:total|amount\s+paid|balance\s+due)\b', caseSensitive: false);
       final amountLine = RegExp(r'^(?:AUD)?\s*\$?\s*([\d,]+\.\d{2})$', caseSensitive: false);
@@ -88,10 +89,9 @@ class ReceiptParser {
       if (labelIndex >= 0) {
         for (final line in lines.skip(labelIndex + 1)) {
           final match = amountLine.firstMatch(line);
-          if (match != null) {
-            total = parseAmount(match.group(1)!);
-            break;
-          }
+          if (match == null) continue;
+          final amount = parseAmount(match.group(1)!);
+          if (amount != null && (total == null || amount > total)) total = amount;
         }
       }
     }

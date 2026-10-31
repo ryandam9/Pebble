@@ -15,7 +15,12 @@ coverage/
 # Native platforms are created using scripts/bootstrap.sh for MVP stage.
 # Once generated projects are reviewed, commit their configuration in a
 # dedicated platform-integration PR.
-android/
+# Ignore generated Android files, but keep the hand-written R8 rules: release
+# builds need them for ML Kit receipt scanning, and flutter create keeps it.
+android/*
+!android/app/
+android/app/*
+!android/app/proguard-rules.pro
 ios/
 linux/
 macos/
