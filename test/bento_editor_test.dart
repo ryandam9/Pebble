@@ -27,6 +27,9 @@ void main() {
     expect(find.byKey(const Key('bentoAmountHero')), findsOneWidget);
     expect(find.byKey(const Key('amountInput')), findsOneWidget);
     expect(find.text('Category'), findsOneWidget);
+    // New category sits at the end of the horizontal category strip.
+    await tester.drag(find.byType(ListView).last, const Offset(-1100, 0));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('newCategoryTile')), findsOneWidget);
     expect(find.byKey(const Key('paymentMethodInput')), findsOneWidget);
     expect(find.byType(BentoSaveButton), findsOneWidget);
