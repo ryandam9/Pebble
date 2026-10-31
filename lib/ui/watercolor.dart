@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../core/pebble_typography.dart';
+
 /// A restrained paper-and-pigment system for expense editing.
 ///
 /// The decoration is painted locally: no raster asset, network request,
@@ -89,7 +91,7 @@ class WatercolorSection extends StatelessWidget {
   Widget build(BuildContext context) => Row(children: [
     Expanded(child: Text(title, style: const TextStyle(
       fontSize: 21, color: Watercolor.ink, fontWeight: FontWeight.w700,
-      fontStyle: FontStyle.italic, fontFamily: 'serif',
+      fontStyle: FontStyle.italic, fontFamily: PebbleTypography.editorial,
     ))),
     if (trailing != null) trailing!,
   ]);
