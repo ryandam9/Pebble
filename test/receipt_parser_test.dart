@@ -95,4 +95,65 @@ A0000000000000
     expect(draft.totalCents, 1200);
     expect(draft.taxCents, 109);
   });
+
+  // Text read by ML Kit from a supermarket receipt. The label column comes
+  // first, then every price, so "Total $" is followed by the item prices
+  // before the total itself.
+  test('supermarket receipt: total is the largest amount after the label', () {
+    final draft = parser.parse(fakePhoto, r'''
+Description
+Phone Number D3 9888 2399
+OPEN 7 DAYS A WEEK
+*CHECKOUT BAG OXO BIO 40UM
+CHICKEN DRUMSTICKS
+*DOVE B0DY BAR EXFOL
+RITCHIES FUEL OFFER
+DOCKET DEAL
+SUNNY 100/200 C0OKED PD PRAWNS
+BEERENBRG SCE PEPPRCORN
+HNZ MAYO PERI PERI SOZ
+BAN/BT SSCRN SPRT SPR50+ #200ML
+Promot i on saving $3.50
+*SWISSPERS CTN TIP PAP STM#
+YUMMY PEARL BARLEY
+HYDROPONIC CORIANDER
+CELERY TRIMMED
+TOMATOES TRUSS-HYDRO
+BANANAS
+BEETROOT
+0.705kg NET @ $3.89/kg
+Promotion saving $3.60
+ONIONS RED LOOSE
+0.930kg NET $5.99/kg
+2@ $2.99
+0.590kg NET $4.99/kg
+0.670kg NET 9 $5.99/kg
+TOTAL (Inc GST)
+16 Items
+Paid by EFTPOS
+00000000
+426557 886
+00000000 0
+Credit
+Total $
+0.15*
+5.65
+10.00x
+9.99
+6.40
+5.80
+21.50
+1.20*
+2.29
+5.98
+4.99
+2.74
+5.57
+2.94
+4.01
+$89.21
+$89.21
+''');
+    expect(draft.totalCents, 8921);
+  });
 }
