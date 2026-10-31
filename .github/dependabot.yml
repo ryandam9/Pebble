@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Dart / Flutter direct and indirect package updates.
+  # Dependabot raises reviewable PRs; it does not bypass Flutter CI.
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Melbourne"
+    open-pull-requests-limit: 5
+    groups:
+      compatible-pub-updates:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Melbourne"
+    open-pull-requests-limit: 3
