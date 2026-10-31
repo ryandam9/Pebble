@@ -13,7 +13,7 @@ import '../pebble_root.dart';
 import '../location_field.dart';
 import '../receipt_viewer.dart';
 import '../ui_helpers.dart';
-import '../watercolor.dart';
+import '../bento.dart';
 import 'categories_screen.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -161,7 +161,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   InputDecoration _bare(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Watercolor.muted),
+    hintStyle: const TextStyle(color: Bento.muted),
     isDense: true,
     contentPadding: EdgeInsets.zero,
     border: InputBorder.none,
@@ -172,373 +172,487 @@ class _EditorScreenState extends State<EditorScreen> {
     filled: false,
   );
 
-  Widget _smallLabel(String label) => Padding(
-    padding: const EdgeInsets.only(bottom: 5),
-    child: Text(label, style: const TextStyle(
-      fontSize: 12, color: Watercolor.muted, fontWeight: FontWeight.w600)),
-  );
-
-  Widget _dateCard() => WatercolorPanel(
-    tint: const Color(0xFFFFFBF5),
-    onTap: _selectDate,
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-    child: Row(children: [
-      const WatercolorIcon(Icons.calendar_month_outlined),
-      const SizedBox(width: 8),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _smallLabel('Date'),
-        Text(friendlyDate.format(_date), maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700, color: Watercolor.ink)),
-      ])),
-      const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Watercolor.muted),
-    ]),
-  );
-
-  Widget _paymentCard() => WatercolorPanel(
-    tint: const Color(0xFFFFFBF5),
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-    child: Row(children: [
-      const WatercolorIcon(Icons.credit_card_outlined),
-      const SizedBox(width: 8),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _smallLabel('Payment method'),
-        DropdownButtonHideUnderline(child: DropdownButton<String>(
-          key: const Key('paymentMethodInput'),
-          isDense: true,
-          isExpanded: true,
-          value: _paymentMethod,
-          hint: const Text('Not set', style: TextStyle(fontSize: 13)),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-          items: ['Card', 'Cash', 'Bank transfer', 'Other'].map((value) =>
-            DropdownMenuItem<String>(
-              value: value,
-              child: Text(value, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: Watercolor.ink)),
-            )).toList(),
-          onChanged: (value) => setState(() => _paymentMethod = value),
-        )),
-      ])),
-    ]),
-  );
-
-  Widget _inputRow({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    required String hint,
-    String? Function(String?)? validator,
-    int? maxLength,
-    Key? fieldKey,
-    int maxLines = 1,
-  }) => WatercolorPanel(
-    tint: const Color(0xFFFFFBF5),
-    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(padding: const EdgeInsets.only(top: 9),
-        child: WatercolorIcon(icon, tint: Watercolor.lilac)),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _smallLabel(label),
-        TextFormField(
-          key: fieldKey,
-          controller: controller,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: _bare(hint),
-          style: const TextStyle(fontSize: 14, color: Watercolor.ink,
-            fontWeight: FontWeight.w600),
-          validator: validator,
-        ),
-      ])),
-    ]),
-  );
-
-  Widget _categoryTiles() => ListenableBuilder(
-    listenable: widget.store,
-    builder: (context, _) => LayoutBuilder(builder: (context, constraints) {
-      final tileWidth = (constraints.maxWidth - 24) / 4;
-      final names = widget.store.categoryNames;
-      return Wrap(spacing: 8, runSpacing: 8, children: [
-        for (final category in names)
-          Builder(builder: (context) {
-            final selected = _category == category;
-            final style = categoryStyle(widget.store, category);
-            return Semantics(
-              button: true, selected: selected, label: category,
-              child: InkWell(
-                key: Key('category_' + category),
-                onTap: () => setState(() => _category = category),
-                borderRadius: BorderRadius.circular(15),
-                child: Container(
-                  width: tileWidth, height: 74,
-                  decoration: BoxDecoration(
-                    color: style.background,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: selected ? style.foreground : Watercolor.stroke,
-                      width: selected ? 2 : 0.7),
-                  ),
-                  child: Stack(children: [
-                    const Positioned.fill(child: IgnorePointer(
-                      child: CustomPaint(painter: _TilePigment()))),
-                    Center(child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(style.icon, size: 26, color: style.foreground),
-                        const SizedBox(height: 4),
-                        Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Watercolor.ink,
-                            fontSize: 11, fontWeight: selected
-                              ? FontWeight.w800 : FontWeight.w600)),
-                      ],
-                    )),
-                    if (selected) Positioned(right: 4, top: 4,
-                      child: CircleAvatar(radius: 9,
-                        backgroundColor: style.foreground,
-                        child: const Icon(Icons.check, size: 11, color: Colors.white))),
-                  ]),
-                ),
+  Widget _hero() {
+    Widget amount = Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const BentoFieldLabel('Amount (AUD)'),
+        const SizedBox(height: 3),
+        SizedBox(
+          width: 160,
+          child: TextFormField(
+            key: const Key('amountInput'),
+            controller: _amount,
+            textAlign: TextAlign.end,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
+            style: const TextStyle(
+              fontSize: 29, fontWeight: FontWeight.w800,
+              color: Bento.ink,
+              fontFeatures: PebbleTypography.tabularFigures,
+            ),
+            decoration: _bare('0.00').copyWith(
+              prefixText: r'$',
+              prefixStyle: const TextStyle(
+                color: Bento.ink, fontSize: 29, fontWeight: FontWeight.w800,
+                fontFeatures: PebbleTypography.tabularFigures,
               ),
-            );
-          }),
-        InkWell(
-          key: const Key('newCategoryTile'),
-          onTap: _newCategory,
-          borderRadius: BorderRadius.circular(15),
-          child: Container(
-            width: tileWidth, height: 74,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBF5),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Watercolor.stroke, width: 1.5)),
-            child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.add, size: 27, color: Watercolor.cobalt),
-              SizedBox(height: 4),
-              Text('New', style: TextStyle(color: Watercolor.cobalt,
-                fontSize: 11, fontWeight: FontWeight.w700)),
-            ]),
+            ),
+            validator: (value) => parseAmount(value ?? '') == null
+              ? 'Enter a valid amount'
+              : null,
           ),
         ),
-      ]);
-    }),
+      ],
+    );
+    final category = widget.store.categoryNames.contains(_category)
+        ? _category : otherCategory;
+    final style = categoryStyle(widget.store, category);
+    Widget merchant = AnimatedBuilder(
+      animation: Listenable.merge([_merchant, _description]),
+      builder: (context, _) {
+        final label = _merchant.text.trim().isNotEmpty
+          ? _merchant.text.trim()
+          : _description.text.trim().isNotEmpty
+            ? _description.text.trim() : 'New expense';
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 46, height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE4F0FF),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Icon(style.icon, color: Bento.blue, size: 26),
+          ),
+          const SizedBox(width: 10),
+          Flexible(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: 15, color: Bento.ink)),
+              const SizedBox(height: 3),
+              Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Bento.muted, fontSize: 11)),
+            ],
+          )),
+        ]);
+      },
+    );
+    return BentoTile(
+      keyName: 'bentoAmountHero',
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+      child: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth < 327) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              merchant,
+              const SizedBox(height: 12),
+              Align(alignment: Alignment.centerRight, child: amount),
+            ],
+          );
+        }
+        return Row(children: [
+          Expanded(child: merchant),
+          const SizedBox(width: 8),
+          amount,
+        ]);
+      }),
+    );
+  }
+
+  Widget _dateTile() => BentoTile(
+    onTap: _selectDate,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+    child: Row(children: [
+      const BentoIcon(Icons.calendar_month_outlined,
+        background: Bento.mint, color: Color(0xFF129B74)),
+      const SizedBox(width: 8),
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const BentoFieldLabel('Date'),
+          const SizedBox(height: 5),
+          Text(friendlyDate.format(_date),
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12,
+              color: Bento.ink, fontWeight: FontWeight.w700)),
+        ],
+      )),
+      const Icon(Icons.chevron_right, size: 16, color: Bento.muted),
+    ]),
   );
 
-  Widget _receiptSection() => Column(
-    children: [
-      WatercolorPanel(
-        tint: const Color(0xFFEDF3FF),
-        padding: EdgeInsets.zero,
+  Widget _paymentTile() => BentoTile(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+    child: Row(children: [
+      const BentoIcon(Icons.credit_card_outlined),
+      const SizedBox(width: 8),
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const BentoFieldLabel('Payment'),
+          const SizedBox(height: 3),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              key: const Key('paymentMethodInput'),
+              isExpanded: true, isDense: true,
+              value: _paymentMethod,
+              hint: const Text('Not set',
+                style: TextStyle(fontSize: 12, color: Bento.muted)),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                size: 17, color: Bento.muted),
+              items: ['Card', 'Cash', 'Bank transfer', 'Other']
+                .map((method) => DropdownMenuItem(
+                  value: method,
+                  child: Text(method,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Bento.ink, fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+                )).toList(),
+              onChanged: (value) => setState(() => _paymentMethod = value),
+            ),
+          ),
+        ],
+      )),
+    ]),
+  );
+
+  Widget _inputTile({
+    required String label,
+    required IconData icon,
+    required TextEditingController controller,
+    required String hint,
+    Key? fieldKey,
+    String? Function(String?)? validator,
+    int? maxLength,
+    int maxLines = 1,
+  }) => BentoTile(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.only(top: 7),
+        child: Icon(icon, color: Bento.muted, size: 19),
+      ),
+      const SizedBox(width: 11),
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BentoFieldLabel(label),
+          const SizedBox(height: 6),
+          TextFormField(
+            key: fieldKey,
+            controller: controller,
+            textCapitalization: TextCapitalization.sentences,
+            maxLength: maxLength,
+            maxLines: maxLines,
+            style: const TextStyle(
+              color: Bento.ink, fontSize: 14, fontWeight: FontWeight.w600),
+            decoration: _bare(hint),
+            validator: validator,
+          ),
+        ],
+      )),
+    ]),
+  );
+
+  Widget _categories() => ListenableBuilder(
+    listenable: widget.store,
+    builder: (context, _) {
+      final categories = widget.store.categoryNames;
+      return SizedBox(
+        height: 92,
+        child: ListView(
+          key: const Key('bentoCategories'),
+          scrollDirection: Axis.horizontal,
+          children: [
+            for (final category in categories)
+              Builder(builder: (context) {
+                final style = categoryStyle(widget.store, category);
+                final selected = _category == category;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Semantics(
+                    button: true,
+                    selected: selected,
+                    label: category,
+                    child: Material(
+                      color: style.background,
+                      borderRadius: BorderRadius.circular(15),
+                      child: InkWell(
+                        key: Key('category_' + category),
+                        onTap: () => setState(() => _category = category),
+                        borderRadius: BorderRadius.circular(15),
+                        child: Container(
+                          width: 85,
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: selected ? Bento.blue : Bento.line,
+                              width: selected ? 2 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(style.icon, color: style.foreground, size: 26),
+                              const SizedBox(height: 7),
+                              Text(category, maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 11, color: Bento.ink,
+                                  fontWeight: selected
+                                    ? FontWeight.w800 : FontWeight.w600)),
+                              if (selected) const Icon(Icons.check_rounded,
+                                size: 12, color: Bento.blue),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              child: InkWell(
+                key: const Key('newCategoryTile'),
+                borderRadius: BorderRadius.circular(15),
+                onTap: _newCategory,
+                child: Container(
+                  width: 79,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Bento.line, width: 1.3)),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_rounded, size: 28, color: Bento.blue),
+                      SizedBox(height: 7),
+                      Text('New', style: TextStyle(
+                        color: Bento.blue, fontWeight: FontWeight.w700, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+
+  Widget _receiptPhoto(File photo) => Stack(children: [
+    ReceiptThumbnail(file: photo, height: 174, fillWidth: true),
+    Positioned(right: 10, top: 10, child: Material(
+      color: Colors.white,
+      elevation: 2,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         onTap: _attach,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(children: [
-            const Icon(Icons.attach_file_rounded, color: Watercolor.cobalt),
-            const SizedBox(width: 10),
-            Expanded(child: Text(_attachment == null
-                ? 'Attach photo or receipt' : 'Replace receipt photo',
-              style: const TextStyle(fontWeight: FontWeight.w700,
-                color: Watercolor.cobalt))),
-            const Icon(Icons.chevron_right_rounded, color: Watercolor.cobalt),
+        borderRadius: BorderRadius.circular(12),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.camera_alt_outlined, color: Bento.ink, size: 17),
+            SizedBox(width: 6),
+            Text('Replace', style: TextStyle(
+              color: Bento.ink, fontSize: 12, fontWeight: FontWeight.w700)),
           ]),
         ),
       ),
-      if (_attachment != null) ...[
-        const SizedBox(height: 10),
-        ReceiptThumbnail(file: File(_attachment!.path), height: 295, fillWidth: true),
-      ] else if (widget.entry?.receiptPath != null) ...[
-        const SizedBox(height: 10),
-        FutureBuilder<File?>(
-          future: _savedReceipt,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const SizedBox(height: 180,
-                child: Center(child: CircularProgressIndicator()));
-            }
-            final file = snapshot.data;
-            return file == null
-              ? const Text('Receipt photo unavailable',
-                  style: TextStyle(color: Watercolor.muted))
-              : ReceiptThumbnail(file: file, height: 295, fillWidth: true);
-          },
-        ),
-      ],
-    ],
-  );
+    )),
+  ]);
+
+  Widget _receipt() {
+    if (_attachment != null) {
+      return _receiptPhoto(File(_attachment!.path));
+    }
+    if (widget.entry?.receiptPath != null) {
+      return FutureBuilder<File?>(
+        future: _savedReceipt,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const SizedBox(
+              height: 174, child: Center(child: CircularProgressIndicator()));
+          }
+          if (snapshot.data == null) {
+            return BentoTile(
+              child: const Text('Receipt photo unavailable',
+                style: TextStyle(color: Bento.muted)),
+            );
+          }
+          return _receiptPhoto(snapshot.data!);
+        },
+      );
+    }
+    return BentoTile(
+      onTap: _attach,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      child: const Row(children: [
+        BentoIcon(Icons.add_photo_alternate_outlined),
+        SizedBox(width: 12),
+        Expanded(child: Text('Attach photo or receipt',
+          style: TextStyle(color: Bento.blue, fontWeight: FontWeight.w700))),
+        Icon(Icons.chevron_right, color: Bento.blue),
+      ]),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
-      backgroundColor: Watercolor.paper,
-      body: WatercolorCanvas(
-        child: Form(
-          key: _formKey,
-          child: SafeArea(
-            bottom: false,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 650),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(17, 12, 17, 28),
-                  children: [
-                    Row(children: [
+      backgroundColor: Bento.canvas,
+      resizeToAvoidBottomInset: true,
+      body: Form(
+        key: _formKey,
+        child: SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 650),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                children: [
+                  Row(children: [
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back_rounded, color: Bento.ink),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(child: Text(
+                      widget.entry == null ? 'Add Expense' : 'Edit Expense',
+                      style: const TextStyle(
+                        fontFamily: PebbleTypography.editorial,
+                        fontSize: 27, fontWeight: FontWeight.w700,
+                        color: Bento.ink),
+                    )),
+                    TextButton.icon(
+                      onPressed: () => widget.onSwitchTab(2),
+                      icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                      label: const Text('Scan'),
+                    ),
+                    if (widget.entry != null)
                       IconButton(
-                        tooltip: 'Back',
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back_rounded,
-                          color: Watercolor.ink)),
-                      const SizedBox(width: 3),
-                      Expanded(child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(widget.entry == null ? 'Add expense' : 'Edit expense',
-                            style: const TextStyle(
-                              color: Watercolor.ink, fontFamily: PebbleTypography.editorial,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w700, fontSize: 29)),
-                          Text(widget.entry == null ? 'A new little moment' : 'Update this saved expense',
-                            style: const TextStyle(
-                              fontSize: 12, color: Watercolor.muted)),
-                        ],
-                      )),
-                      if (widget.entry != null)
-                        IconButton(tooltip: 'Delete expense',
-                          onPressed: _saving ? null : _delete,
-                          icon: const Icon(Icons.delete_outline_rounded,
-                            color: Color(0xFFD74542))),
-                      IconButton(tooltip: 'Close',
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded,
-                          color: Watercolor.ink)),
-                    ]),
-                    const SizedBox(height: 17),
-                    Row(children: [
-                      WatercolorSegment(label: 'Manual', icon: Icons.edit_outlined,
-                        selected: true, onTap: () {}),
-                      const SizedBox(width: 8),
-                      WatercolorSegment(label: 'Receipt', icon: Icons.camera_alt_outlined,
-                        selected: false,
-                        onTap: () => widget.onSwitchTab(2)),
-                    ]),
-                    const SizedBox(height: 14),
-                    WatercolorPanel(
-                      tint: const Color(0xFFE9F6FE),
-                      padding: const EdgeInsets.fromLTRB(17, 14, 18, 14),
-                      child: Row(children: [
-                        Expanded(child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _smallLabel('Amount (AUD)'),
-                            TextFormField(
-                              key: const Key('amountInput'),
-                              controller: _amount,
-                              style: const TextStyle(
-                                fontSize: 40, fontWeight: FontWeight.w800,
-                                fontFeatures: PebbleTypography.tabularFigures,
-                                color: Watercolor.ink),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              textInputAction: TextInputAction.next,
-                              decoration: _bare('0.00').copyWith(
-                                prefixText: r'$',
-                                prefixStyle: const TextStyle(
-                                  fontSize: 40, fontWeight: FontWeight.w800,
-                                  fontFeatures: PebbleTypography.tabularFigures,
-                                  color: Watercolor.ink)),
-                              validator: (v) => parseAmount(v ?? '') == null
-                                ? 'Enter an amount greater than zero (e.g. 12.50)'
-                                : null,
-                            ),
-                          ],
-                        )),
-                        const WatercolorIcon(Icons.calculate_outlined,
-                          tint: Color(0xFFD5EAFB)),
-                      ]),
-                    ),
-                    const SizedBox(height: 11),
-                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Expanded(child: _dateCard()),
-                      const SizedBox(width: 9),
-                      Expanded(child: _paymentCard()),
-                    ]),
-                    const SizedBox(height: 11),
-                    _inputRow(
-                      label: 'Description', icon: Icons.notes_outlined,
-                      controller: _description,
-                      fieldKey: const Key('descriptionInput'),
-                      hint: 'What did you spend on?',
-                      maxLength: 240,
-                      validator: (v) => v == null || v.trim().isEmpty
-                        ? 'Description is required' : null,
-                    ),
-                    const SizedBox(height: 17),
-                    WatercolorSection(
-                      title: 'Category',
-                      trailing: TextButton(
-                        onPressed: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute<void>(builder: (_) =>
-                              CategoriesScreen(store: widget.store)),
-                          );
-                        },
-                        child: const Text('Manage ›',
-                          style: TextStyle(color: Watercolor.cobalt)),
+                        tooltip: 'Delete expense',
+                        onPressed: _saving ? null : _delete,
+                        icon: const Icon(Icons.delete_outline,
+                          color: Color(0xFFD74343)),
                       ),
+                  ]),
+                  const SizedBox(height: 11),
+                  _hero(),
+                  const SizedBox(height: 10),
+                  LayoutBuilder(builder: (context, constraints) {
+                    if (constraints.maxWidth < 350) {
+                      return Column(children: [
+                        _dateTile(),
+                        const SizedBox(height: 9),
+                        _paymentTile(),
+                      ]);
+                    }
+                    return Row(children: [
+                      Expanded(child: _dateTile()),
+                      const SizedBox(width: 9),
+                      Expanded(child: _paymentTile()),
+                    ]);
+                  }),
+                  const SizedBox(height: 16),
+                  BentoSectionTitle(
+                    label: 'Category',
+                    action: TextButton(
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => CategoriesScreen(store: widget.store)),
+                        );
+                      },
+                      child: const Text('Manage'),
                     ),
-                    const SizedBox(height: 7),
-                    _categoryTiles(),
-                    const SizedBox(height: 12),
-                    _inputRow(
-                      label: 'Merchant (optional)', icon: Icons.storefront_outlined,
-                      controller: _merchant, hint: 'Merchant name',
-                    ),
-                    const SizedBox(height: 13),
-                    LocationField(
-                      value: _location,
-                      service: widget.locationService,
-                      onChanged: (value) => setState(() => _location = value),
-                    ),
-                    const SizedBox(height: 12),
-                    _inputRow(
-                      label: 'Notes (optional)', icon: Icons.note_alt_outlined,
-                      controller: _notes, hint: 'Add a note...',
-                      maxLines: 2, maxLength: 200,
-                    ),
-                    const SizedBox(height: 12),
-                    _receiptSection(),
-                    const SizedBox(height: 18),
-                    WatercolorSave(
-                      label: _saving ? 'Saving...' : 'Save expense',
-                      onPressed: _saving ? null : _save,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 7),
+                  _categories(),
+                  const SizedBox(height: 15),
+                  const BentoSectionTitle(label: 'Details'),
+                  const SizedBox(height: 8),
+                  _inputTile(
+                    label: 'Description',
+                    icon: Icons.notes_rounded,
+                    controller: _description,
+                    fieldKey: const Key('descriptionInput'),
+                    hint: 'What did you spend on?',
+                    maxLength: 240,
+                    validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Description is required' : null,
+                  ),
+                  const SizedBox(height: 9),
+                  _inputTile(
+                    label: 'Merchant (optional)',
+                    icon: Icons.storefront_outlined,
+                    controller: _merchant,
+                    hint: 'Store or merchant name',
+                  ),
+                  const SizedBox(height: 15),
+                  LocationField(
+                    bento: true,
+                    value: _location,
+                    service: widget.locationService,
+                    onChanged: (value) => setState(() => _location = value),
+                  ),
+                  const SizedBox(height: 15),
+                  const BentoSectionTitle(label: 'Receipt'),
+                  const SizedBox(height: 8),
+                  _receipt(),
+                  const SizedBox(height: 14),
+                  _inputTile(
+                    label: 'Notes (optional)',
+                    icon: Icons.sticky_note_2_outlined,
+                    controller: _notes,
+                    hint: 'Add a note...',
+                    maxLines: 2,
+                    maxLength: 200,
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
-      bottomNavigationBar: PebbleBottomNav(
-        active: 1, onSelect: widget.onSwitchTab),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!keyboardOpen)
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Bento.canvas,
+                border: Border(top: BorderSide(color: Bento.line)),
+              ),
+              child: Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 650),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 9),
+                    child: BentoSaveButton(
+                      onPressed: _saving ? null : _save,
+                      label: _saving ? 'Saving...' : widget.entry == null
+                        ? 'Save expense' : 'Save changes',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          PebbleBottomNav(active: 1, onSelect: widget.onSwitchTab),
+        ],
+      ),
     );
   }
-}
-
-/// Gentle painted highlight on category squares; never blocks interactions.
-class _TilePigment extends CustomPainter {
-  const _TilePigment();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: .16);
-    canvas.drawOval(Rect.fromLTWH(-9, -14, size.width * .86,
-      size.height * .83), paint);
-    paint.color = const Color(0xFFFFF0DF).withValues(alpha: .28);
-    canvas.drawOval(Rect.fromLTWH(size.width * .50, size.height * .45,
-      size.width * .65, size.height * .7), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _TilePigment oldDelegate) => false;
 }

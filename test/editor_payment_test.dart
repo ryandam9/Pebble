@@ -39,8 +39,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('descriptionInput')), 'Flat white');
     tester.testTextInput.hide();
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Save expense'), 250, scrollable: scroll);
-    await tester.tap(find.text('Save expense'));
+    await tester.tap(find.byKey(const Key('bentoSaveButton')));
     await tester.pumpAndSettle();
 
     expect(store.expenses.single.description, 'Flat white');

@@ -129,8 +129,7 @@ void main() {
       await tester.enterText(find.byKey(const Key('descriptionInput')), 'Lunch');
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Save expense'), 250, scrollable: scrollable());
-      await tester.tap(find.text('Save expense'));
+      await tester.tap(find.byKey(const Key('bentoSaveButton')));
       await tester.pumpAndSettle();
     }
 
@@ -141,6 +140,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('833 Collins St, Docklands, VIC 3008'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Open in Maps'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Open in Maps'));
       await tester.pumpAndSettle();
       expect(fake.opened.single.latitude, -37.8213);
@@ -164,6 +165,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('1 Flinders St, Melbourne, VIC 3000'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Remove'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('currentLocationButton')), findsOneWidget);
