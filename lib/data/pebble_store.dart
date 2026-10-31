@@ -118,7 +118,19 @@ class PebbleStore extends ChangeNotifier {
     return null;
   }
 
-  int expenseCountFor(String category) => expenses.where((e) => e.category == category).length;
+  /// Names are UI labels only: expenses are attached to category IDs.
+  String categoryNameFor(int id) {
+    for (final category in categories) {
+      if (category.id == id) return category.name;
+    }
+    return otherCategory;
+  }
+
+  int expenseCountFor(String name) {
+    final category = categoryNamed(name);
+    return category == null ? 0
+      : expenses.where((expense) => expense.categoryId == category.id).length;
+  }
 
   /// Returns an error message, or null when [name] can be used.
   /// [editingId] is the category being renamed, which may keep its own name.
@@ -181,7 +193,7 @@ class PebbleStore extends ChangeNotifier {
           date: DateTime(date.year, date.month, date.day),
           amountCents: amountCents,
           description: description.trim(),
-          category: Value(category),
+          categoryId: await database.categoryIdForName(category),
           paymentMethod: Value(_optional(paymentMethod)),
           merchant: Value(_optional(merchant)),
           notes: Value(_optional(notes)),
