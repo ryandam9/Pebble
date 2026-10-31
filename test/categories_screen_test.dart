@@ -78,9 +78,12 @@ void main() {
 
   testWidgets('New tile in the expense editor creates and selects a category', (tester) async {
     await pumpWith(tester, (store) => EditorScreen(store: store, onSwitchTab: (_) {}));
-    final scroll = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(find.byKey(const Key('newCategoryTile')), 150, scrollable: scroll);
-    await tester.tap(find.byKey(const Key('newCategoryTile')));
+    // Bento Studio uses a horizontal carousel rather than a vertical grid.
+    final carousel = find.byKey(const Key('bentoCategories'));
+    await tester.ensureVisible(carousel);
+    await tester.drag(carousel, const Offset(-1050, 0));
+    await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('newCategoryTile')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('categoryNameInput')), 'Pets');
     await tester.tap(find.text('Save'));
