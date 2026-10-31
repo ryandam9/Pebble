@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'watercolor.dart';
+import 'bento.dart';
 import 'expense_map_preview.dart';
 import 'address_search_dialog.dart';
 import '../data/expense_location.dart';
@@ -12,12 +13,14 @@ class LocationField extends StatefulWidget {
     required this.value,
     required this.onChanged,
     required this.service,
+    this.bento = false,
     super.key,
   });
 
   final ExpenseLocation? value;
   final ValueChanged<ExpenseLocation?> onChanged;
   final LocationService service;
+  final bool bento;
 
   @override
   State<LocationField> createState() => _LocationFieldState();
@@ -62,6 +65,7 @@ class _LocationFieldState extends State<LocationField> {
   @override
   Widget build(BuildContext context) {
     final location = widget.value;
+    if (widget.bento) return _buildBento(location);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const WatercolorSection(title: 'Location'),
       const SizedBox(height: 9),
@@ -141,5 +145,115 @@ class _LocationFieldState extends State<LocationField> {
         ),
     ]);
   }
+  Widget _buildBento(ExpenseLocation? location) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const BentoSectionTitle(label: 'Location'),
+      const SizedBox(height: 8),
+      BentoTile(
+        padding: EdgeInsets.zero,
+        child: location == null
+          ? Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(children: [
+                    BentoIcon(Icons.location_on_outlined),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('Add a location',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: Bento.ink))),
+                  ]),
+                  const SizedBox(height: 6),
+                  const Text('Save where this expense happened.',
+                    style: TextStyle(fontSize: 12, color: Bento.muted)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 7, runSpacing: 2, children: [
+                    TextButton.icon(
+                      key: const Key('currentLocationButton'),
+                      onPressed: _locating ? null : _useCurrentLocation,
+                      icon: _locating
+                        ? const SizedBox(width: 17, height: 17,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.my_location, size: 18),
+                      label: Text(_locating ? 'Locating…' : 'Current location'),
+                    ),
+                    TextButton.icon(
+                      key: const Key('searchAddressButton'),
+                      onPressed: _locating ? null : _search,
+                      icon: const Icon(Icons.search, size: 18),
+                      label: const Text('Search address'),
+                    ),
+                  ]),
+                ],
+              ),
+            )
+          : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Stack(children: [
+                ExpenseMapPreview(
+                  location: location,
+                  onOpen: () => _openMap(location),
+                ),
+                Positioned(
+                  left: 10, bottom: 9, right: 10,
+                  child: Material(
+                    color: Colors.white,
+                    elevation: 1,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      onTap: () => _openMap(location),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                        child: Row(children: [
+                          const Icon(Icons.place_rounded,
+                            color: Bento.blue, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(
+                            location.label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12,
+                              color: Bento.ink, fontWeight: FontWeight.w700),
+                          )),
+                          const Icon(Icons.chevron_right_rounded,
+                            color: Bento.muted, size: 19),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                child: Wrap(spacing: 1, runSpacing: 0, children: [
+                  TextButton.icon(
+                    key: const Key('openInMapsButton'),
+                    onPressed: () => _openMap(location),
+                    icon: const Icon(Icons.map_outlined, size: 17),
+                    label: const Text('Open in Maps', style: TextStyle(fontSize: 11)),
+                  ),
+                  TextButton.icon(
+                    key: const Key('changeLocationButton'),
+                    onPressed: _search,
+                    icon: const Icon(Icons.edit_location_alt_outlined, size: 17),
+                    label: const Text('Change', style: TextStyle(fontSize: 11)),
+                  ),
+                  TextButton.icon(
+                    key: const Key('removeLocationButton'),
+                    onPressed: () => widget.onChanged(null),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFC94141)),
+                    icon: const Icon(Icons.close_rounded, size: 17),
+                    label: const Text('Remove', style: TextStyle(fontSize: 11)),
+                  ),
+                ]),
+              ),
+            ]),
+      ),
+    ],
+  );
+
 }
 
