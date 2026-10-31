@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'pebble_typography.dart';
+
 /// Visual tokens transcribed from docs/mockups/*.svg.
 abstract final class PebbleColors {
   static const canvas = Color(0xFFF4F7FC);
@@ -84,11 +86,11 @@ ThemeData pebbleTheme() {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: PebbleColors.canvas,
-    fontFamily: 'Roboto',
+    fontFamily: PebbleTypography.body,
     textTheme: const TextTheme(
-      headlineLarge: TextStyle(fontSize: 31, fontWeight: FontWeight.w800, color: PebbleColors.ink),
-      headlineSmall: TextStyle(fontSize: 23, fontWeight: FontWeight.w700, color: PebbleColors.ink),
-      titleLarge: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: PebbleColors.ink),
+      headlineLarge: TextStyle(fontFamily: PebbleTypography.editorial, fontSize: 31, fontWeight: FontWeight.w700, color: PebbleColors.ink),
+      headlineSmall: TextStyle(fontFamily: PebbleTypography.editorial, fontSize: 23, fontWeight: FontWeight.w600, color: PebbleColors.ink),
+      titleLarge: TextStyle(fontFamily: PebbleTypography.editorial, fontSize: 19, fontWeight: FontWeight.w600, color: PebbleColors.ink),
       bodyLarge: TextStyle(fontSize: 15, color: PebbleColors.ink),
       bodyMedium: TextStyle(fontSize: 13, color: PebbleColors.muted),
     ),
