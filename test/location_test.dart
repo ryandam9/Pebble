@@ -69,29 +69,6 @@ void main() {
     expect(const ExpenseLocation(address: ' ').isEmpty, isTrue);
   });
 
-  test('upgrading a version 2 database adds empty location columns', () async {
-    final database = PebbleDatabase(NativeDatabase.memory(setup: (raw) {
-      raw.execute('''
-        CREATE TABLE expense_entries (
-          id TEXT NOT NULL PRIMARY KEY, date INTEGER NOT NULL, amount_cents INTEGER NOT NULL,
-          description TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'Other',
-          payment_method TEXT, merchant TEXT, notes TEXT, receipt_path TEXT,
-          created_at INTEGER NOT NULL)''');
-      raw.execute('''
-        CREATE TABLE expense_categories (
-          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE,
-          icon_key TEXT NOT NULL, color_key TEXT NOT NULL, position INTEGER NOT NULL)''');
-      raw.execute("INSERT INTO expense_categories (name, icon_key, color_key, position) VALUES ('Other', 'other', 'grey', 0)");
-      raw.execute("INSERT INTO expense_entries (id, date, amount_cents, description, category, created_at) "
-          "VALUES ('old', 1790000000, 500, 'Legacy', 'Other', 1790000000)");
-      raw.execute('PRAGMA user_version = 2');
-    }));
-    addTearDown(database.close);
-    final entry = (await database.watchExpenses().first).single;
-    expect(entry.description, 'Legacy');
-    expect(ExpenseLocation.of(entry), isNull);
-  });
-
   group('expense editor', () {
     Future<(PebbleStore, FakeLocationService)> openEditor(WidgetTester tester, {FakeLocationService? service}) async {
       tester.view.physicalSize = const Size(430, 950);

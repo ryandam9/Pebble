@@ -14,12 +14,13 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()))..start();
+    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()));
     addTearDown(store.dispose);
 
     // Receipt-screen saves have no payment method.
     await tester.runAsync(() => store.save(
       date: DateTime(2026, 10, 30), amountCents: 1250, description: 'Coffee', category: 'Food'));
+    store.start();
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: Builder(builder: (context) =>
       TextButton(
         onPressed: () => Navigator.of(context).push(MaterialPageRoute<int>(builder: (_) =>
@@ -51,10 +52,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()))..start();
+    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()));
     addTearDown(store.dispose);
     await tester.runAsync(() => store.save(
       date: DateTime(2026, 10, 30), amountCents: 500, description: 'Snack', category: 'Food'));
+    store.start();
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: Builder(builder: (context) =>
       TextButton(
         onPressed: () => Navigator.of(context).push(MaterialPageRoute<int>(builder: (_) =>
