@@ -14,7 +14,7 @@ void main() {
   setUpAll(() async => initializeDateFormatting('en_AU'));
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('monthly budget defaults to $2,000 and persists in exact AUD cents', () async {
+  test(r'monthly budget defaults to $2,000 and persists in exact AUD cents', () async {
     final preferences = await SharedPreferences.getInstance();
     final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()),
       preferences: preferences);
