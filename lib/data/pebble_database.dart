@@ -60,111 +60,29 @@ class PebbleDatabase extends _$PebbleDatabase {
           native: const DriftNativeOptions(databaseDirectory: appDataDirectory),
         ));
 
+  // Fresh-install schema. Pebble has no production data or supported
+  // historical database formats, so no migration or legacy columns exist.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        beforeOpen: (_) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
         onCreate: (m) async {
           await m.createAll();
           await _seedCategories();
         },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createTable(expenseCategories);
-            await _seedCategories();
-          }
-          if (from < 3) {
-            await m.addColumn(expenseEntries, expenseEntries.locationAddress);
-            await m.addColumn(expenseEntries, expenseEntries.latitude);
-            await m.addColumn(expenseEntries, expenseEntries.longitude);
-          }
-          if (from < 4) {
-            await _ensureLegacyCategories();
-            await _migrateCategoryIds();
-          }
+        beforeOpen: (_) async {
+          await customStatement('PRAGMA foreign_keys = ON');
         },
       );
 
-  /// Seed all defaults for a new database or when upgrading from schema v1.
+  /// Populate categories on a newly created database.
   Future<void> _seedCategories() async {
     var position = 0;
     for (final (name, icon, color) in defaultCategories) {
       await into(expenseCategories).insert(ExpenseCategoriesCompanion.insert(
         name: name, iconKey: icon, colorKey: color, position: position++));
     }
-  }
-
-  /// Restore any names from legacy expense rows that aren't already in the
-  /// categories table. This runs before deleting the old name column.
-  Future<void> _ensureLegacyCategories() async {
-    final existing = await select(expenseCategories).get();
-    final known = existing.map((c) => c.name).toSet();
-    var position = existing.fold<int>(-1,
-      (max, c) => c.position > max ? c.position : max) + 1;
-    if (!known.contains(otherCategory)) {
-      await into(expenseCategories).insert(ExpenseCategoriesCompanion.insert(
-        name: otherCategory, iconKey: 'other', colorKey: 'grey',
-        position: position++));
-      known.add(otherCategory);
-    }
-    final rows = await customSelect('SELECT DISTINCT category FROM expense_entries').get();
-    for (final row in rows) {
-      final name = row.read<String>('category').trim();
-      if (name.isEmpty || name.length > 30 || known.contains(name)) continue;
-      await into(expenseCategories).insert(ExpenseCategoriesCompanion.insert(
-        name: name, iconKey: 'other', colorKey: 'grey',
-        position: position++));
-      known.add(name);
-    }
-  }
-
-  /// Rebuild in Drift's upgrade transaction because category_id is NOT NULL
-  /// and SQLite can't replace the old category TEXT field with a FK in place.
-  /// All non-category expense fields, including receipt paths, are preserved.
-  Future<void> _migrateCategoryIds() async {
-    await customStatement('''
-      CREATE TABLE expense_entries_v4 (
-        id TEXT NOT NULL PRIMARY KEY,
-        date INTEGER NOT NULL,
-        amount_cents INTEGER NOT NULL,
-        description TEXT NOT NULL,
-        category_id INTEGER NOT NULL REFERENCES expense_categories(id),
-        payment_method TEXT,
-        merchant TEXT,
-        notes TEXT,
-        receipt_path TEXT,
-        location_address TEXT,
-        latitude REAL,
-        longitude REAL,
-        created_at INTEGER NOT NULL
-      )
-    ''');
-    await customStatement('''
-      INSERT INTO expense_entries_v4 (
-        id, date, amount_cents, description, category_id,
-        payment_method, merchant, notes, receipt_path,
-        location_address, latitude, longitude, created_at
-      )
-      SELECT
-        e.id, e.date, e.amount_cents, e.description,
-        COALESCE(
-          (SELECT c.id FROM expense_categories c WHERE c.name = TRIM(e.category)),
-          (SELECT fallback.id FROM expense_categories fallback WHERE fallback.name = 'Other')
-        ),
-        e.payment_method, e.merchant, e.notes, e.receipt_path,
-        e.location_address, e.latitude, e.longitude, e.created_at
-      FROM expense_entries e
-    ''');
-    await customStatement('DROP TABLE expense_entries');
-    await customStatement('ALTER TABLE expense_entries_v4 RENAME TO expense_entries');
-    await customStatement('''
-      CREATE INDEX IF NOT EXISTS expense_entries_category_id_idx
-      ON expense_entries(category_id)
-    ''');
   }
 
   /// Categories in display order, with [otherCategory] always last.
