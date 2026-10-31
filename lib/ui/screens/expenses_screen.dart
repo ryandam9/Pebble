@@ -49,11 +49,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final filter = store.categoryNames.contains(_filter) ? _filter : 'All';
     final rows = widget.store.expenses.where((e) {
       final inMonth = e.date.year == _month.year && e.date.month == _month.month;
-      final inCategory = filter == 'All' || e.category == filter;
+      final inCategory = filter == 'All' || store.categoryNameFor(e.categoryId) == filter;
       final inSearch = query.isEmpty ||
           e.description.toLowerCase().contains(query) ||
           (e.merchant?.toLowerCase().contains(query) ?? false) ||
-          e.category.toLowerCase().contains(query);
+          store.categoryNameFor(e.categoryId).toLowerCase().contains(query);
       return inMonth && inCategory && inSearch;
     }).toList();
 
@@ -126,7 +126,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           )
         else
           ...rows.map((entry) {
-            final style = categoryStyle(store, entry.category);
+            final style = categoryStyle(store, store.categoryNameFor(entry.categoryId));
             return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: PebbleCard(
@@ -163,7 +163,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   Text('−' + formatCents(entry.amountCents),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  CategoryBadge(entry.category, style: style, compact: true),
+                  CategoryBadge(store.categoryNameFor(entry.categoryId), style: style, compact: true),
                 ]),
                 const SizedBox(width: 4),
                 const Icon(Icons.chevron_right, size: 18, color: PebbleColors.muted),

@@ -42,7 +42,7 @@ class HomeScreen extends StatelessWidget {
       formatCents(difference) + (exceededBudget ? ' over budget' : ' remaining');
     final grouped = <String, int>{};
     for (final item in thisMonth) {
-      grouped.update(item.category, (value) => value + item.amountCents, ifAbsent: () => item.amountCents);
+      grouped.update(store.categoryNameFor(item.categoryId), (value) => value + item.amountCents, ifAbsent: () => item.amountCents);
     }
     final top = grouped.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final categories = top.take(4).toList();
@@ -179,7 +179,7 @@ class HomeScreen extends StatelessWidget {
             if (recent.isEmpty)
               const EmptyMessage(title: 'No expenses yet', message: 'Record one to start your history.')
             else
-              ...recent.map((item) => _RecentLine(entry: item, style: categoryStyle(store, item.category))),
+              ...recent.map((item) => _RecentLine(entry: item, style: categoryStyle(store, store.categoryNameFor(item.categoryId)))),
           ]),
         ),
       ],

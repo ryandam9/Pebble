@@ -15,19 +15,21 @@ void main() {
       date: date,
       amountCents: 4875,
       description: 'Supermarket',
+      categoryId: await database.categoryIdForName(otherCategory),
       createdAt: date,
     );
     await database.saveEntry(entry);
     var rows = await database.watchExpenses().first;
     expect(rows, hasLength(1));
     expect(rows.single.amountCents, 4875);
-    expect(rows.single.category, 'Other');
+    expect(rows.single.categoryId, await database.categoryIdForName(otherCategory));
 
     await database.saveEntry(ExpenseEntriesCompanion.insert(
       id: 'first',
       date: date,
       amountCents: 1500,
       description: 'Corrected',
+      categoryId: await database.categoryIdForName(otherCategory),
       createdAt: date,
     ));
     rows = await database.watchExpenses().first;

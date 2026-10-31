@@ -10,7 +10,8 @@ class ExpenseEntries extends Table {
   DateTimeColumn get date => dateTime()();
   IntColumn get amountCents => integer()();
   TextColumn get description => text().withLength(min: 1, max: 240)();
-  TextColumn get category => text().withDefault(const Constant(otherCategory))();
+  /// Numeric category identity; a real SQLite foreign key.
+  IntColumn get categoryId => integer().references(ExpenseCategories, #id)();
   TextColumn get paymentMethod => text().nullable()();
   TextColumn get merchant => text().nullable()();
   TextColumn get notes => text().nullable()();
@@ -29,7 +30,7 @@ class ExpenseEntries extends Table {
 /// Fallback category: always present, cannot be renamed or deleted.
 const otherCategory = 'Other';
 
-/// A user-editable spending category. Expenses refer to it by [name].
+/// Category display name and metadata; expenses reference its stable ID.
 @DataClassName('ExpenseCategory')
 class ExpenseCategories extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -60,10 +61,13 @@ class PebbleDatabase extends _$PebbleDatabase {
         ));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (_) async {
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
         onCreate: (m) async {
           await m.createAll();
           await _seedCategories();
@@ -78,31 +82,89 @@ class PebbleDatabase extends _$PebbleDatabase {
             await m.addColumn(expenseEntries, expenseEntries.latitude);
             await m.addColumn(expenseEntries, expenseEntries.longitude);
           }
+          if (from < 4) {
+            await _ensureLegacyCategories();
+            await _migrateCategoryIds();
+          }
         },
       );
 
-  /// Inserts the defaults, plus any category names existing expenses already use.
+  /// Seed all defaults for a new database or when upgrading from schema v1.
   Future<void> _seedCategories() async {
-    final names = <String>{};
     var position = 0;
-    await batch((b) {
-      for (final (name, icon, color) in defaultCategories) {
-        names.add(name);
-        b.insert(expenseCategories, ExpenseCategoriesCompanion.insert(
-          name: name, iconKey: icon, colorKey: color, position: position++));
-      }
-    });
-    final used = await (selectOnly(expenseEntries, distinct: true)
-          ..addColumns([expenseEntries.category]))
-        .map((row) => row.read(expenseEntries.category)!)
-        .get();
-    for (final name in used) {
-      final trimmed = name.trim();
-      if (trimmed.isEmpty || trimmed.length > 30 || names.contains(trimmed)) continue;
-      names.add(trimmed);
+    for (final (name, icon, color) in defaultCategories) {
       await into(expenseCategories).insert(ExpenseCategoriesCompanion.insert(
-        name: trimmed, iconKey: 'other', colorKey: 'grey', position: position++));
+        name: name, iconKey: icon, colorKey: color, position: position++));
     }
+  }
+
+  /// Restore any names from legacy expense rows that aren't already in the
+  /// categories table. This runs before deleting the old name column.
+  Future<void> _ensureLegacyCategories() async {
+    final existing = await select(expenseCategories).get();
+    final known = existing.map((c) => c.name).toSet();
+    var position = existing.fold<int>(-1,
+      (max, c) => c.position > max ? c.position : max) + 1;
+    if (!known.contains(otherCategory)) {
+      await into(expenseCategories).insert(ExpenseCategoriesCompanion.insert(
+        name: otherCategory, iconKey: 'other', colorKey: 'grey',
+        position: position++));
+      known.add(otherCategory);
+    }
+    final rows = await customSelect('SELECT DISTINCT category FROM expense_entries').get();
+    for (final row in rows) {
+      final name = row.read<String>('category').trim();
+      if (name.isEmpty || name.length > 30 || known.contains(name)) continue;
+      await into(expenseCategories).insert(ExpenseCategoriesCompanion.insert(
+        name: name, iconKey: 'other', colorKey: 'grey',
+        position: position++));
+      known.add(name);
+    }
+  }
+
+  /// Rebuild in Drift's upgrade transaction because category_id is NOT NULL
+  /// and SQLite can't replace the old category TEXT field with a FK in place.
+  /// All non-category expense fields, including receipt paths, are preserved.
+  Future<void> _migrateCategoryIds() async {
+    await customStatement('''
+      CREATE TABLE expense_entries_v4 (
+        id TEXT NOT NULL PRIMARY KEY,
+        date INTEGER NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        category_id INTEGER NOT NULL REFERENCES expense_categories(id),
+        payment_method TEXT,
+        merchant TEXT,
+        notes TEXT,
+        receipt_path TEXT,
+        location_address TEXT,
+        latitude REAL,
+        longitude REAL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+    await customStatement('''
+      INSERT INTO expense_entries_v4 (
+        id, date, amount_cents, description, category_id,
+        payment_method, merchant, notes, receipt_path,
+        location_address, latitude, longitude, created_at
+      )
+      SELECT
+        e.id, e.date, e.amount_cents, e.description,
+        COALESCE(
+          (SELECT c.id FROM expense_categories c WHERE c.name = TRIM(e.category)),
+          (SELECT fallback.id FROM expense_categories fallback WHERE fallback.name = 'Other')
+        ),
+        e.payment_method, e.merchant, e.notes, e.receipt_path,
+        e.location_address, e.latitude, e.longitude, e.created_at
+      FROM expense_entries e
+    ''');
+    await customStatement('DROP TABLE expense_entries');
+    await customStatement('ALTER TABLE expense_entries_v4 RENAME TO expense_entries');
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS expense_entries_category_id_idx
+      ON expense_entries(category_id)
+    ''');
   }
 
   /// Categories in display order, with [otherCategory] always last.
@@ -124,33 +186,42 @@ class PebbleDatabase extends _$PebbleDatabase {
       name: name, iconKey: iconKey, colorKey: colorKey, position: (last ?? -1) + 1));
   }
 
-  /// Updates a category; a rename is applied to its expenses in the same transaction.
-  Future<void> updateCategory(int id, {required String name, required String iconKey, required String colorKey}) {
+  /// Rename and restyle without rewriting any expense rows.
+  Future<void> updateCategory(int id,
+      {required String name, required String iconKey, required String colorKey}) {
     return transaction(() async {
       final current = await (select(expenseCategories)..where((t) => t.id.equals(id))).getSingle();
       if (current.name == otherCategory && name != otherCategory) {
         throw StateError('The $otherCategory category cannot be renamed.');
       }
       await (update(expenseCategories)..where((t) => t.id.equals(id))).write(
-        ExpenseCategoriesCompanion(name: Value(name), iconKey: Value(iconKey), colorKey: Value(colorKey)));
-      if (current.name != name) {
-        await (update(expenseEntries)..where((t) => t.category.equals(current.name)))
-            .write(ExpenseEntriesCompanion(category: Value(name)));
-      }
+        ExpenseCategoriesCompanion(
+          name: Value(name), iconKey: Value(iconKey), colorKey: Value(colorKey)));
     });
   }
 
-  /// Deletes a category and moves its expenses to [otherCategory].
+  /// Reassign before deleting to keep the FK constraint satisfied.
   Future<void> deleteCategory(int id) {
     return transaction(() async {
       final current = await (select(expenseCategories)..where((t) => t.id.equals(id))).getSingle();
       if (current.name == otherCategory) {
         throw StateError('The $otherCategory category cannot be deleted.');
       }
-      await (update(expenseEntries)..where((t) => t.category.equals(current.name)))
-          .write(const ExpenseEntriesCompanion(category: Value(otherCategory)));
+      final fallbackId = await categoryIdForName(otherCategory);
+      await (update(expenseEntries)..where((t) => t.categoryId.equals(id)))
+        .write(ExpenseEntriesCompanion(categoryId: Value(fallbackId)));
       await (delete(expenseCategories)..where((t) => t.id.equals(id))).go();
     });
+  }
+
+  /// A stale/deleted name resolves to Other, never an invalid FK.
+  Future<int> categoryIdForName(String name) async {
+    final selected = await (select(expenseCategories)
+      ..where((c) => c.name.equals(name))).getSingleOrNull();
+    if (selected != null) return selected.id;
+    final fallback = await (select(expenseCategories)
+      ..where((c) => c.name.equals(otherCategory))).getSingle();
+    return fallback.id;
   }
 
   Stream<List<ExpenseEntry>> watchExpenses() {
