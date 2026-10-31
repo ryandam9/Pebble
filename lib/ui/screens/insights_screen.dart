@@ -89,22 +89,56 @@ class InsightsScreen extends StatelessWidget {
           ],
         )),
         const SizedBox(height: 16),
-        PebbleCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Row(children: [
-            Icon(Icons.cloud_off_outlined, color: PebbleColors.purple),
-            SizedBox(width: 10),
-            Flexible(child: Text('Storage & privacy', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+        PebbleCard(
+          padding: const EdgeInsets.all(15),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [
+              Icon(Icons.cloud_off_outlined, color: PebbleColors.purple),
+              SizedBox(width: 10),
+              Flexible(child: Text('Storage & privacy',
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+            ]),
+            const SizedBox(height: 15),
+            SizedBox(
+              height: 154,
+              child: Row(
+              key: const Key('insightsStorageTiles'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _StorageTile(
+                  tileKey: const Key('insightsStorageDatabase'),
+                  icon: Icons.storage_outlined,
+                  color: const Color(0xFFEAF2FF),
+                  foreground: PebbleColors.blue,
+                  value: store.expenses.length.toString(),
+                  label: 'Local SQLite',
+                  detail: 'Expense entries',
+                )),
+                const SizedBox(width: 7),
+                Expanded(child: _StorageTile(
+                  tileKey: const Key('insightsStorageReceipts'),
+                  icon: Icons.image_outlined,
+                  color: const Color(0xFFFFF0E6),
+                  foreground: Color(0xFFBE714A),
+                  value: receiptCount.toString(),
+                  label: 'Receipt photos',
+                  detail: 'Attachments',
+                )),
+                const SizedBox(width: 7),
+                const Expanded(child: _StorageTile(
+                  tileKey: Key('insightsStoragePrivate'),
+                  icon: Icons.lock_outline_rounded,
+                  color: Color(0xFFF0EAFE),
+                  foreground: PebbleColors.purple,
+                  value: 'On device',
+                  label: 'Private by default',
+                  detail: 'No cloud account',
+                )),
+              ],
+              ),
+            ),
           ]),
-          const SizedBox(height: 16),
-          _StorageRow(Icons.storage_outlined, 'Local SQLite',
-            store.expenses.length.toString() + ' expense entries'),
-          const Divider(color: PebbleColors.stroke),
-          _StorageRow(Icons.image_outlined, 'Receipt photos',
-            receiptCount.toString() + ' saved attachments'),
-          const Divider(color: PebbleColors.stroke),
-          const _StorageRow(Icons.lock_outline, 'Private by default',
-            'Stored on this device; no cloud account'),
-        ])),
+        ),
       ],
     );
   }
@@ -156,14 +190,14 @@ class _MonthlySpendingCardState extends State<_MonthlySpendingCard> {
         ),
       ]),
       const SizedBox(height: 26),
-      SizedBox(height: 142, child: Row(
+      SizedBox(key: const Key('monthlySpendingChart'), height: 238, child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: months.map((item) {
           final heightFactor = item.$2 / maxValue;
           final currentMonth = item.$1.month == now.month && item.$1.year == now.year;
           final amountText = item.$2 == 0 ? '—' : formatCents(item.$2);
           final bar = Container(
-            width: compact ? 14 : 32,
+            width: compact ? 14 : (_monthCount == 3 ? 50 : 32),
             decoration: BoxDecoration(
               color: currentMonth ? PebbleColors.blue : const Color(0xFFC5DDFB),
               borderRadius: BorderRadius.vertical(top: Radius.circular(compact ? 4 : 7)),
@@ -194,22 +228,74 @@ class _MonthlySpendingCardState extends State<_MonthlySpendingCard> {
   }
 }
 
-class _StorageRow extends StatelessWidget {
-  const _StorageRow(this.icon, this.label, this.detail);
+/// Three equal-width summary tiles use the full card width, including on
+/// compact phones. Values stay prominent without wasting the right-hand side.
+class _StorageTile extends StatelessWidget {
+  const _StorageTile({
+    required this.tileKey,
+    required this.icon,
+    required this.color,
+    required this.foreground,
+    required this.value,
+    required this.label,
+    required this.detail,
+  });
+
+  final Key tileKey;
   final IconData icon;
+  final Color color;
+  final Color foreground;
+  final String value;
   final String label;
   final String detail;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      CircleAvatar(backgroundColor: const Color(0xFFEAF2FF), radius: 20,
-        child: Icon(icon, color: PebbleColors.blue, size: 21)),
-      const SizedBox(width: 12),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-        Text(detail, style: const TextStyle(fontSize: 12, color: PebbleColors.muted)),
-      ])),
-    ]);
-  }
+  Widget build(BuildContext context) => Container(
+    key: tileKey,
+    constraints: const BoxConstraints(minHeight: 145),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 13),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: foreground, size: 23),
+        const Spacer(),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: PebbleColors.ink,
+            fontFeatures: PebbleTypography.tabularFigures,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: PebbleColors.ink,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          detail,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 10,
+            color: PebbleColors.muted,
+          ),
+        ),
+      ],
+    ),
+  );
 }

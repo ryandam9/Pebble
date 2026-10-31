@@ -46,4 +46,43 @@ void main() {
     expect(find.text(monthLabel(2)), findsOneWidget);
     expect(find.text(monthLabel(3)), findsNothing);
   });
+
+  testWidgets('three storage tiles share the width and the chart is taller', (tester) async {
+    tester.view.physicalSize = const Size(430, 950);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final store = PebbleStore(PebbleDatabase(NativeDatabase.memory()))..start();
+    addTearDown(store.dispose);
+    await tester.pumpWidget(MaterialApp(home: Scaffold(
+      body: InsightsScreen(store: store),
+    )));
+    await tester.pumpAndSettle();
+
+    final chart = find.byKey(const Key('monthlySpendingChart'));
+    expect(chart, findsOneWidget);
+    expect(tester.getSize(chart).height, greaterThanOrEqualTo(225));
+
+    final storage = find.byKey(const Key('insightsStorageTiles'));
+    await tester.scrollUntilVisible(
+      storage, 200, scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    final names = [
+      'insightsStorageDatabase',
+      'insightsStorageReceipts',
+      'insightsStoragePrivate',
+    ];
+    final tiles = [for (final name in names) find.byKey(Key(name))];
+    for (final tile in tiles) {
+      expect(tile, findsOneWidget);
+      expect(tester.getSize(tile).height, greaterThanOrEqualTo(140));
+    }
+    final widths = [for (final tile in tiles) tester.getSize(tile).width];
+    expect(widths.reduce((a, b) => a > b ? a : b) -
+      widths.reduce((a, b) => a < b ? a : b), lessThan(1));
+  });
+
 }
