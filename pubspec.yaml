@@ -35,6 +35,32 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 800
+        - asset: assets/fonts/PlusJakartaSans-Italic.ttf
+          style: italic
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Fraunces-Regular.ttf
+          weight: 600
+        - asset: assets/fonts/Fraunces-Regular.ttf
+          weight: 700
+        - asset: assets/fonts/Fraunces-Italic.ttf
+          style: italic
+          weight: 600
 
 # Launchers are generated from the committed artwork when scripts/bootstrap.sh runs.
 flutter_launcher_icons:
