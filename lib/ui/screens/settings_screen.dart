@@ -60,14 +60,6 @@ class SettingsScreen extends StatelessWidget {
             onChanged: store.setShowScannedText,
           ),
         )),
-        const SizedBox(height: 16),
-        const PebbleCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Upcoming milestones',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-          SizedBox(height: 9),
-          Text('Configurable budgets, CSV export, full ZIP backup/restore, and an Android/iOS release build are specified but not yet implemented.',
-            style: TextStyle(height: 1.5, color: PebbleColors.muted)),
-        ])),
       ],
     );
   }
