@@ -55,8 +55,9 @@ class _EditorScreenState extends State<EditorScreen> {
     final item = widget.entry;
     _date = item?.date ?? DateTime.now();
     _location = item == null ? null : ExpenseLocation.of(item);
-    _category = item?.category ??
-        (widget.store.categoryNames.isEmpty ? otherCategory : widget.store.categoryNames.first);
+    _category = item == null ? (widget.store.categoryNames.isEmpty ? otherCategory : widget.store.categoryNames.first) : widget.store.categoryNameFor(item.categoryId);
+    // Original selection is stored by ID; the name is only for the picker.
+
     _paymentMethod = item == null ? 'Card' : item.paymentMethod;
     // Load the saved photo once, not on every rebuild.
     _savedReceipt = widget.store.receiptFile(item?.receiptPath);
