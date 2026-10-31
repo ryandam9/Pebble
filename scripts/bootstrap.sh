@@ -8,6 +8,7 @@ fi
 # This initial development PR keeps native Flutter templates generated on demand.
 # Platform files will be committed after Android/iOS integration is validated.
 python3 scripts/check_launcher_assets.py
+python3 scripts/fetch_fonts.py
 flutter create --project-name pebble --org au.com.pebble --platforms=android,ios,linux --no-pub .
 python3 scripts/configure_native.py
 flutter pub get

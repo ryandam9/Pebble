@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/formatting.dart';
+import '../../core/pebble_typography.dart';
 import '../../data/expense_location.dart';
 import '../../data/location_service.dart';
 import '../../data/pebble_database.dart';
@@ -393,7 +394,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         children: [
                           Text(widget.entry == null ? 'Add expense' : 'Edit expense',
                             style: const TextStyle(
-                              color: Watercolor.ink, fontFamily: 'serif',
+                              color: Watercolor.ink, fontFamily: PebbleTypography.editorial,
                               fontStyle: FontStyle.italic,
                               fontWeight: FontWeight.w700, fontSize: 29)),
                           Text(widget.entry == null ? 'A new little moment' : 'Update this saved expense',
@@ -434,6 +435,7 @@ class _EditorScreenState extends State<EditorScreen> {
                               controller: _amount,
                               style: const TextStyle(
                                 fontSize: 40, fontWeight: FontWeight.w800,
+                                fontFeatures: PebbleTypography.tabularFigures,
                                 color: Watercolor.ink),
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               textInputAction: TextInputAction.next,
@@ -441,6 +443,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                 prefixText: r'$',
                                 prefixStyle: const TextStyle(
                                   fontSize: 40, fontWeight: FontWeight.w800,
+                                  fontFeatures: PebbleTypography.tabularFigures,
                                   color: Watercolor.ink)),
                               validator: (v) => parseAmount(v ?? '') == null
                                 ? 'Enter an amount greater than zero (e.g. 12.50)'

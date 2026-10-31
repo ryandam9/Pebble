@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../core/category_palette.dart';
 import '../../core/design.dart';
 import '../../core/formatting.dart';
+import '../../core/pebble_typography.dart';
 import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
@@ -52,13 +53,13 @@ class HomeScreen extends StatelessWidget {
             Row(children: [
               const Icon(Icons.calendar_month_outlined, size: 19, color: PebbleColors.ink),
               const SizedBox(width: 8),
-              Text(monthTitle.format(today), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              Text(monthTitle.format(today), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFeatures: PebbleTypography.tabularFigures)),
             ]),
             const SizedBox(height: 18),
             const Text('Spent this month', style: TextStyle(fontSize: 14, color: PebbleColors.muted)),
             const SizedBox(height: 4),
             FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown,
-              child: Text(formatCents(total), style: const TextStyle(fontSize: 35, fontWeight: FontWeight.w800, color: PebbleColors.ink))),
+              child: Text(formatCents(total), style: const TextStyle(fontSize: 35, fontWeight: FontWeight.w800, fontFeatures: PebbleTypography.tabularFigures, color: PebbleColors.ink))),
             const SizedBox(height: 14),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -94,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                       FittedBox(
                         alignment: Alignment.centerLeft,
                         fit: BoxFit.scaleDown,
-                        child: Text(formatCents(entry.value), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                        child: Text(formatCents(entry.value), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, fontFeatures: PebbleTypography.tabularFigures)),
                       ),
                       const SizedBox(height: 3),
                       Text(entry.key, maxLines: 1, overflow: TextOverflow.ellipsis,

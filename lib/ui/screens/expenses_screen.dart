@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/design.dart';
 import '../../core/formatting.dart';
+import '../../core/pebble_typography.dart';
 import '../../data/pebble_database.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
@@ -140,7 +141,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(entry.merchant ?? entry.description, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800,
+                      fontFeatures: PebbleTypography.tabularFigures)),
                   const SizedBox(height: 4),
                   Row(children: [
                     Flexible(child: Text(friendlyDate.format(entry.date),
