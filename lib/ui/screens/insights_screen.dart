@@ -99,7 +99,9 @@ class InsightsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
             ]),
             const SizedBox(height: 15),
-            Row(
+            SizedBox(
+              height: 154,
+              child: Row(
               key: const Key('insightsStorageTiles'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -133,6 +135,7 @@ class InsightsScreen extends StatelessWidget {
                   detail: 'No cloud account',
                 )),
               ],
+              ),
             ),
           ]),
         ),
