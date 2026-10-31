@@ -56,7 +56,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       return inMonth && inCategory && inSearch;
     }).toList();
 
-    return PebblePage(
+    return Column(children: [
+      Expanded(child: PebblePage(
       title: 'Expenses',
       subtitle: 'Search and explore your spending',
       children: [
@@ -116,13 +117,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
         const SizedBox(height: 14),
         if (rows.isEmpty)
-          PebbleCard(child: Column(children: [
-            const EmptyMessage(
+          const PebbleCard(
+            child: EmptyMessage(
               title: 'No matching expenses',
               message: 'Try another month or category, or add a new expense.',
             ),
-            PebbleButton(label: 'Add expense', icon: Icons.add, onPressed: widget.onAdd),
-          ]))
+          )
         else
           ...rows.map((entry) {
             final style = categoryStyle(store, entry.category);
@@ -170,8 +170,32 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           );
           }),
         const SizedBox(height: 6),
-        PebbleButton(label: 'Add expense', icon: Icons.add, onPressed: widget.onAdd),
       ],
-    );
+    )),
+      // Keep the primary action above the bottom tab bar, even when
+      // there are many expenses and the list is scrolled.
+      // While typing a search, let the keyboard use the available space.
+      if (MediaQuery.viewInsetsOf(context).bottom == 0)
+        Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFF4F7FC),
+            border: Border(top: BorderSide(color: PebbleColors.stroke)),
+          ),
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 650),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+                child: PebbleButton(
+                  label: 'Add expense',
+                  icon: Icons.add,
+                  onPressed: widget.onAdd,
+                ),
+              ),
+            ),
+          ),
+        ),
+    ]);
   }
 }
