@@ -60,4 +60,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Scanned text'), findsNothing);
   });
+
+  testWidgets('a long scan keeps the dialog to 60% of the screen and scrolls', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final longText = List.generate(200, (i) => 'LINE ${i + 1}  9.99').join('\n');
+    await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) => TextButton(
+      onPressed: () => showScannedTextDialog(context, longText),
+      child: const Text('open'),
+    ))));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // The visible dialog card; AlertDialog itself spans the whole screen.
+    final dialog = tester.getSize(find.descendant(of: find.byType(AlertDialog), matching: find.byType(Material)).first);
+    expect(dialog.height, lessThanOrEqualTo(800 * 0.6));
+    expect(find.byType(Scrollbar), findsOneWidget);
+    // Lines are short, but the scrollbar sits at the dialog's right edge.
+    final content = tester.getRect(find.ancestor(of: find.byType(Scrollbar), matching: find.byType(Column)).first);
+    expect(tester.getRect(find.byType(Scrollbar)).right, content.right);
+    expect(find.text('Close'), findsOneWidget);
+  });
 }
