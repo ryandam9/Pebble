@@ -10,6 +10,12 @@ Pebble is an offline-first personal expense and receipt tracker for Android and 
 
 Explore the [five-screen mockup gallery](docs/mockups/README.md) and the [complete product specification](docs/Pebble_Design_and_Build_Specification.md).
 
+## Launcher icon
+
+![Pebble watercolor icon](assets/launcher/pebble_icon.png)
+
+Pebble uses the **stacked watercolor pebbles** icon on Android and iOS. [See icon assets and build instructions](docs/LAUNCHER_ICON.md).
+
 ## Flutter MVP
 
 - Native Flutter UI based on the five approved Pebble screen mockups.
