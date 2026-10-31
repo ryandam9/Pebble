@@ -30,6 +30,19 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.35.2
   build_runner: ^2.16.2
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# Launchers are generated from the committed artwork when scripts/bootstrap.sh runs.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/launcher/pebble_icon.png"
+  adaptive_icon_background: "#FFFBF3"
+  adaptive_icon_foreground: "assets/launcher/pebble_adaptive_foreground.png"
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_monochrome: "assets/launcher/pebble_monochrome.png"
+  remove_alpha_ios: true
+  background_color_ios: "#FFFBF3"
