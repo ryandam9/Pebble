@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/design.dart';
 import '../../core/formatting.dart';
+import '../../core/pebble_typography.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
 import '../ui_helpers.dart';
@@ -49,7 +50,7 @@ class InsightsScreen extends StatelessWidget {
                     colors: [for (final e in entries) categoryStyle(store, e.key).foreground]),
                   child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Text(formatCents(total), textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, fontFeatures: PebbleTypography.tabularFigures)),
                     const Text('Total spent', style: TextStyle(fontSize: 11, color: PebbleColors.muted)),
                   ])),
                 ),
@@ -64,7 +65,7 @@ class InsightsScreen extends StatelessWidget {
                     Expanded(child: Text(e.key, maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12))),
                     Text(((e.value / total) * 100).round().toString() + '%',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, fontFeatures: PebbleTypography.tabularFigures)),
                   ]),
                 )).toList())),
             ]),
