@@ -37,13 +37,11 @@ void main() {
     await tester.enterText(find.byKey(const Key('descriptionInput')), 'Groceries');
     tester.testTextInput.hide();
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Save expense'), 250, scrollable: editorScroll);
-    await tester.ensureVisible(find.text('Save expense'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.ancestor(
-      of: find.text('Save expense'),
-      matching: find.byType(TextButton),
-    ).first);
+    // Bento Studio pins Save outside the scrolling expense form.
+    expect(find.ancestor(
+      of: find.text('Save expense'), matching: find.byType(ListView)),
+      findsNothing);
+    await tester.tap(find.byKey(const Key('bentoSaveButton')));
     await tester.pumpAndSettle();
 
     expect(find.text('Expenses'), findsWidgets);
