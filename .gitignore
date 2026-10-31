@@ -27,3 +27,6 @@ macos/
 windows/
 web/
 .metadata
+
+# Licensed font binaries are fetched and SHA-verified during bootstrap.
+assets/fonts/*.ttf
