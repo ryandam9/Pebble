@@ -46,14 +46,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final query = _search.text.toLowerCase().trim();
     final store = widget.store;
     // A filtered category may have been renamed or deleted since it was picked.
-    final filter = store.categoryNames.contains(_filter) ? _filter : 'All';
+    final filter = storstore.categoryNameFor(e.categoryId)Names.contains(_filter) ? _filter : 'All';
     final rows = widget.store.expenses.where((e) {
       final inMonth = e.date.year == _month.year && e.date.month == _month.month;
-      final inCategory = filter == 'All' || e.category == filter;
+      final inCategory = filter == 'All' || store.categoryNameFor(e.categoryId) == filter;
       final inSearch = query.isEmpty ||
           e.description.toLowerCase().contains(query) ||
           (e.merchant?.toLowerCase().contains(query) ?? false) ||
-          e.category.toLowerCase().contains(query);
+          store.categoryNameFor(e.categoryId).toLowerCase().contains(query);
       return inMonth && inCategory && inSearch;
     }).toList();
 
@@ -97,7 +97,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           behavior: ScrollConfiguration.of(context).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(children: ['All', ...store.categoryNames].map((category) {
+            child: Row(children: ['All', ...storstore.categoryNameFor(e.categoryId)Names].map((category) {
               final selected = category == filter;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -126,7 +126,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           )
         else
           ...rows.map((entry) {
-            final style = categoryStyle(store, entry.category);
+            final style = categoryStyle(store, store.categoryNameFor(entry.categoryId));
             return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: PebbleCard(
@@ -163,7 +163,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   Text('−' + formatCents(entry.amountCents),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  CategoryBadge(entry.category, style: style, compact: true),
+                  CategoryBadge(store.categoryNameFor(entry.categoryId), style: style, compact: true),
                 ]),
                 const SizedBox(width: 4),
                 const Icon(Icons.chevron_right, size: 18, color: PebbleColors.muted),
