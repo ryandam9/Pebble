@@ -36,6 +36,23 @@ flutter run
 
 The bootstrap generates Flutter Android/iOS native templates and Drift code. Platform files are not yet committed; consult the [implementation notes](docs/IMPLEMENTATION_STATUS.md) before native release.
 
+### Development database (fresh install only)
+
+Pebble is not yet in production, so the SQLite schema is maintained as a **fresh-install schema, version 1**. There are **no database migrations**. New installs create the `expense_entries.category_id` foreign key directly, seed default categories and enable SQLite foreign-key enforcement.
+
+If you installed an older development build, **back up anything you want to keep, then reset its local `pebble.sqlite` file or clear the app's local data** before running the new build. Only do this if you are certain there is no data to preserve. Updating Dart source or rerunning `bootstrap.sh` does **not** delete an older database.
+
+After a schema change regenerate Drift's ignored `.g.dart` file:
+
+~~~bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter run
+~~~
+
+A stale generated model may report missing `categoryId` getters or parameters. Regenerating code fixes that compilation issue; resetting an old empty database addresses the independent **on-disk schema** mismatch.
+
+
 ## Quality checks
 
 ~~~bash
