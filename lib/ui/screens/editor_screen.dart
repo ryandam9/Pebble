@@ -366,6 +366,7 @@ class _EditorScreenState extends State<EditorScreen> {
       return SizedBox(
         height: 92,
         child: ListView(
+          key: const Key('bentoCategories'),
           scrollDirection: Axis.horizontal,
           children: [
             for (final category in categories)
@@ -521,7 +522,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 children: [
                   Row(children: [
                     IconButton(
-                      tooltip: 'Back',
+                      tooltip: 'Close',
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back_rounded, color: Bento.ink),
                     ),
