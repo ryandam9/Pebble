@@ -36,6 +36,17 @@ flutter run
 
 The bootstrap generates Flutter Android/iOS native templates and Drift code. Platform files are not yet committed; consult the [implementation notes](docs/IMPLEMENTATION_STATUS.md) before native release.
 
+**After pulling changes that modify `lib/data/pebble_database.dart`, regenerate Drift's model before running Flutter.** The generated `lib/data/pebble_database.g.dart` is intentionally ignored by Git; an older local copy will not automatically be replaced by `git pull`:
+
+~~~bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze
+flutter run
+~~~
+
+Alternatively, run `bash scripts/bootstrap.sh` again. Errors such as `No named parameter 'categoryId'` or `The getter 'categoryId' isn't defined for ExpenseEntry` indicate that the generated model is stale. **Do not delete `pebble.sqlite` or clear app data** to solve this; the v4 migration preserves existing expenses.
+
 ## Quality checks
 
 ~~~bash
