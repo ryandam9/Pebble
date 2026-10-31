@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/design.dart';
+import '../../core/formatting.dart';
 import '../../data/pebble_store.dart';
 import '../pebble_root.dart';
+import '../monthly_budget_dialog.dart';
 import 'categories_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -43,8 +45,26 @@ class SettingsScreen extends StatelessWidget {
           const _SettingRow(icon: Icons.payments_outlined, title: 'Currency',
             detail: 'Australian dollars (AUD)'),
           const Divider(color: PebbleColors.stroke),
-          const _SettingRow(icon: Icons.account_balance_wallet_outlined, title: 'Reference budget',
-            detail: r'$2,000 per month (visual baseline for this milestone)'),
+          ListenableBuilder(
+            listenable: store,
+            builder: (context, _) => _SettingRow(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Monthly budget',
+              detail: formatCents(store.monthlyBudgetCents) + ' per month · tap to change',
+              onTap: () async {
+                final updated = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => MonthlyBudgetDialog(store: store),
+                );
+                if (updated == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Monthly budget set to ' +
+                      formatCents(store.monthlyBudgetCents))),
+                  );
+                }
+              },
+            ),
+          ),
         ])),
         const SizedBox(height: 16),
         PebbleCard(child: ListenableBuilder(

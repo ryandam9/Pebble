@@ -61,6 +61,42 @@ class PebbleStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// User-chosen budget shared by all months. Defaults to the existing
+  /// $2,000 reference value until a different amount is saved on this device.
+  static const defaultMonthlyBudgetCents = 200000;
+  static const maxMonthlyBudgetCents = 99999999999;
+  static const _monthlyBudgetKey = 'monthlyBudgetCents';
+
+  int? _monthlyBudgetOverride;
+
+  /// Stored as integer AUD cents to avoid loss of precision.
+  ///
+  /// A corrupt or stale preference falls back to the original $2,000 budget.
+  int get monthlyBudgetCents {
+    final stored = _monthlyBudgetOverride ?? preferences?.get(_monthlyBudgetKey);
+    if (stored is int && stored > 0 && stored <= maxMonthlyBudgetCents) {
+      return stored;
+    }
+    return defaultMonthlyBudgetCents;
+  }
+
+  /// Persist before notifying Home; failed writes must not show a false success.
+  Future<void> setMonthlyBudgetCents(int amountCents) async {
+    if (amountCents <= 0 || amountCents > maxMonthlyBudgetCents) {
+      throw ArgumentError.value(amountCents, 'amountCents', 'Enter a valid monthly budget');
+    }
+    final localPreferences = preferences;
+    if (localPreferences == null) {
+      throw StateError('Device settings storage is unavailable. Please restart Pebble.');
+    }
+    final saved = await localPreferences.setInt(_monthlyBudgetKey, amountCents);
+    if (!saved) {
+      throw StateError('Could not save the budget on this device. Please try again.');
+    }
+    _monthlyBudgetOverride = amountCents;
+    notifyListeners();
+  }
+
   static const _showScannedTextKey = 'showScannedText';
   bool? _showScannedText;
 

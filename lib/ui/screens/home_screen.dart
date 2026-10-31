@@ -25,7 +25,6 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onScan;
   final VoidCallback onExpenses;
-  static const monthlyBudgetCents = 200000; // Design baseline; configurable budget is a later milestone.
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +33,13 @@ class HomeScreen extends StatelessWidget {
       (e) => e.date.year == today.year && e.date.month == today.month,
     ).toList();
     final total = thisMonth.fold<int>(0, (sum, e) => sum + e.amountCents);
-    final ratio = total / monthlyBudgetCents;
-    final remaining = math.max(0, monthlyBudgetCents - total);
+    final budgetCents = store.monthlyBudgetCents;
+    final ratio = total / budgetCents;
+    final difference = (budgetCents - total).abs();
+    final exceededBudget = total > budgetCents;
+    final budgetStatus = (ratio * 100).round().toString() + '% of ' +
+      formatCents(budgetCents) + ' monthly budget · ' +
+      formatCents(difference) + (exceededBudget ? ' over budget' : ' remaining');
     final grouped = <String, int>{};
     for (final item in thisMonth) {
       grouped.update(item.category, (value) => value + item.amountCents, ifAbsent: () => item.amountCents);
@@ -64,12 +68,17 @@ class HomeScreen extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(value: ratio.clamp(0.0, 1.0), minHeight: 10,
-                backgroundColor: const Color(0xFFBFECD7), valueColor: const AlwaysStoppedAnimation(PebbleColors.green)),
+                backgroundColor: const Color(0xFFBFECD7),
+                valueColor: AlwaysStoppedAnimation(exceededBudget
+                  ? const Color(0xFFE05252) : PebbleColors.green)),
             ),
             const SizedBox(height: 8),
             Text(
-              (ratio * 100).round().toString() + '% of ' + formatCents(monthlyBudgetCents) + ' reference budget · ' + formatCents(remaining) + ' left',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF388269), fontWeight: FontWeight.w600),
+              budgetStatus,
+              key: const Key('monthlyBudgetSummary'),
+              style: TextStyle(fontSize: 12,
+                color: exceededBudget ? const Color(0xFFBB3F42) : const Color(0xFF388269),
+                fontWeight: FontWeight.w600),
             ),
           ]),
         ),
