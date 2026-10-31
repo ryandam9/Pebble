@@ -47,6 +47,20 @@ class SettingsScreen extends StatelessWidget {
             detail: r'$2,000 per month (visual baseline for this milestone)'),
         ])),
         const SizedBox(height: 16),
+        PebbleCard(child: ListenableBuilder(
+          listenable: store,
+          builder: (context, _) => SwitchListTile(
+            key: const Key('showScannedTextSwitch'),
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.bug_report_outlined, color: PebbleColors.blue),
+            title: const Text('Show scanned text', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: const Text('Debug: after a receipt scan, show all the text recognised on it',
+              style: TextStyle(fontSize: 12, color: PebbleColors.muted)),
+            value: store.showScannedText,
+            onChanged: store.setShowScannedText,
+          ),
+        )),
+        const SizedBox(height: 16),
         const PebbleCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Upcoming milestones',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),

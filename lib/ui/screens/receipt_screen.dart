@@ -10,6 +10,7 @@ import '../../data/pebble_store.dart';
 import '../../data/receipt_scanner.dart';
 import '../pebble_root.dart';
 import '../receipt_viewer.dart';
+import '../scanned_text_dialog.dart';
 import '../watercolor.dart';
 
 class ReceiptScreen extends StatefulWidget {
@@ -64,6 +65,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         _draft = draft;
         _date = draft.date ?? DateTime.now();
       });
+      if (widget.store.showScannedText && ReceiptScanner.supportsOcr) {
+        await showScannedTextDialog(context, draft.rawText);
+      }
     } catch (error) {
       if (mounted) _snack('Unable to scan receipt: ' + error.toString());
     } finally {
@@ -255,6 +259,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ]),
           ),
           const SizedBox(height: 14),
+          if (widget.store.showScannedText && ReceiptScanner.supportsOcr) ...[
+            OutlinedButton.icon(
+              key: const Key('viewScannedText'),
+              onPressed: () => showScannedTextDialog(context, draft.rawText),
+              icon: const Icon(Icons.bug_report_outlined),
+              label: const Text('View scanned text'),
+            ),
+            const SizedBox(height: 14),
+          ],
           WatercolorSave(label: _busy ? 'Saving...' : 'Confirm & save',
             onPressed: _busy ? null : _save),
           const SizedBox(height: 10),

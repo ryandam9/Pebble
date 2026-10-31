@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/design.dart';
 import 'data/pebble_database.dart';
 import 'data/pebble_store.dart';
@@ -15,7 +16,14 @@ Future<void> main() async {
     // Data stays where it was; the move is retried on the next launch.
     debugPrint('Could not move Pebble data out of Documents: $error');
   }
-  final store = PebbleStore(PebbleDatabase.open())..start();
+  SharedPreferences? preferences;
+  try {
+    preferences = await SharedPreferences.getInstance();
+  } catch (error) {
+    // Settings fall back to their defaults for this session.
+    debugPrint('Could not load Pebble settings: $error');
+  }
+  final store = PebbleStore(PebbleDatabase.open(), preferences: preferences)..start();
   runApp(PebbleApp(store: store));
 }
 

@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pebble_database.dart';
 import 'expense_location.dart';
@@ -12,9 +13,13 @@ import 'storage.dart';
 
 /// Database-backed observable state. UI displays only saved rows, never sample data.
 class PebbleStore extends ChangeNotifier {
-  PebbleStore(this.database);
+  PebbleStore(this.database, {this.preferences});
 
   final PebbleDatabase database;
+
+  /// Device-only settings. Without it (tests, or if loading failed) settings
+  /// still work but reset when the app restarts.
+  final SharedPreferences? preferences;
   StreamSubscription<List<ExpenseEntry>>? _subscription;
   StreamSubscription<List<ExpenseCategory>>? _categorySubscription;
   bool _expensesLoaded = false;
@@ -54,6 +59,18 @@ class PebbleStore extends ChangeNotifier {
     loadError = error.toString();
     isReady = true;
     notifyListeners();
+  }
+
+  static const _showScannedTextKey = 'showScannedText';
+  bool? _showScannedText;
+
+  /// Debug option: after a receipt scan, show the full text ML Kit read.
+  bool get showScannedText => _showScannedText ?? preferences?.getBool(_showScannedTextKey) ?? false;
+
+  Future<void> setShowScannedText(bool value) async {
+    _showScannedText = value;
+    notifyListeners();
+    await preferences?.setBool(_showScannedTextKey, value);
   }
 
   List<String> get categoryNames => [for (final c in categories) c.name];
