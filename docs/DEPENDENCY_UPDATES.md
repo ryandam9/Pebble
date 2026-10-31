@@ -61,5 +61,9 @@ APK build before merging.
 
 Drift model changes also require regenerating
 `lib/data/pebble_database.g.dart` with `build_runner`.
-Never delete an existing `pebble.sqlite` database to fix generated-code
-errors: existing user expenses must survive schema migrations.
+Regenerate the ignored Drift `.g.dart` model to fix stale getters or
+companion parameters. Pebble currently supports **fresh installs only**, not
+migration of pre-release SQLite formats. If upgrading from an old development
+build and there is no data to keep, back up anything important and then clear
+the obsolete database separately. Never delete a database just to silence a
+Dart compilation error.
