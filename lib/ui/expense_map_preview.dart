@@ -37,7 +37,9 @@ class ExpenseMapPreview extends StatelessWidget {
             key: ValueKey('map_' + point.latitude.toString() + '_' + point.longitude.toString()),
             options: MapOptions(
               initialCenter: point,
-              initialZoom: 15.3,
+              // A whole zoom level keeps tiles at their native scale; a
+              // fractional one stretches them and blurs the labels.
+              initialZoom: 16,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.none,
               ),
@@ -46,30 +48,40 @@ class ExpenseMapPreview extends StatelessWidget {
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'au.com.pebble',
+                retinaMode: RetinaMode.isHighDensity(context),
               ),
               MarkerLayer(markers: [
                 Marker(
-                  point: point, width: 46, height: 52,
+                  point: point, width: 40, height: 40,
+                  // The glyph's tip, 22/24 of the way down, marks the spot.
+                  alignment: const Alignment(0, 1 - 2 * 22 / 24),
                   child: const Icon(Icons.location_on_rounded,
-                    size: 43, color: Color(0xFFE65C4B)),
+                    size: 40, color: Color(0xFFE65C4B),
+                    shadows: [Shadow(color: Color(0x59000000), blurRadius: 4, offset: Offset(0, 1))]),
                 ),
               ]),
             ],
           ),
           Positioned.fill(child: Material(
             color: Colors.transparent,
-            child: InkWell(
-              onTap: onOpen,
-              child: const Align(
-                alignment: Alignment.topRight,
+            child: InkWell(onTap: onOpen),
+          )),
+          const Positioned(top: 8, right: 8,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color(0xF2FFFFFF),
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Color(0x26000000), blurRadius: 4, offset: Offset(0, 1))],
+                ),
                 child: Padding(
-                  padding: EdgeInsets.all(8),
+                  padding: EdgeInsets.all(6),
                   child: Icon(Icons.open_in_new_rounded,
-                    size: 22, color: Watercolor.ink),
+                    size: 16, color: Watercolor.ink),
                 ),
               ),
             ),
-          )),
+          ),
           Positioned(right: 5, bottom: 4,
             child: Material(
               color: const Color(0xEFFFFFFF),

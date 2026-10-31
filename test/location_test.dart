@@ -7,6 +7,8 @@ import 'package:pebble/data/expense_location.dart';
 import 'package:pebble/data/location_service.dart';
 import 'package:pebble/data/pebble_database.dart';
 import 'package:pebble/data/pebble_store.dart';
+import 'package:pebble/ui/expense_map_preview.dart';
+import 'package:pebble/ui/location_field.dart';
 import 'package:pebble/ui/screens/editor_screen.dart';
 
 class FakeLocationService implements LocationService {
@@ -67,6 +69,20 @@ void main() {
   test('location label falls back to coordinates', () {
     expect(const ExpenseLocation(latitude: -37.8, longitude: 144.9).label, '-37.80000, 144.90000');
     expect(const ExpenseLocation(address: ' ').isEmpty, isTrue);
+  });
+
+  testWidgets('the location tile shows the address below the map, not over it', (tester) async {
+    Future<void> show(ExpenseLocation location) => tester.pumpWidget(MaterialApp(home: Scaffold(
+      body: SingleChildScrollView(child: LocationField(
+        bento: true, value: location, onChanged: (_) {}, service: FakeLocationService())))));
+
+    await show(const ExpenseLocation(address: '833 Collins St', latitude: -37.8213, longitude: 144.9466));
+    expect(tester.getTopLeft(find.text('833 Collins St')).dy,
+      greaterThanOrEqualTo(tester.getBottomLeft(find.byType(ExpenseMapPreview)).dy));
+
+    await show(const ExpenseLocation(address: 'Woolworths Docklands'));
+    expect(find.text('Woolworths Docklands'), findsOneWidget);
+    expect(find.byType(ExpenseMapPreview), findsNothing);
   });
 
   group('expense editor', () {

@@ -189,42 +189,27 @@ class _LocationFieldState extends State<LocationField> {
               ),
             )
           : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Stack(children: [
+              // The address sits below the map, not over it, so it never
+              // hides the pin or the map attribution.
+              if (location.hasCoordinates)
                 ExpenseMapPreview(
                   location: location,
                   onOpen: () => _openMap(location),
                 ),
-                Positioned(
-                  left: 10, bottom: 9, right: 10,
-                  child: Material(
-                    color: Colors.white,
-                    elevation: 1,
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      onTap: () => _openMap(location),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
-                        child: Row(children: [
-                          const Icon(Icons.place_rounded,
-                            color: Bento.blue, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(
-                            location.label,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12,
-                              color: Bento.ink, fontWeight: FontWeight.w700),
-                          )),
-                          const Icon(Icons.chevron_right_rounded,
-                            color: Bento.muted, size: 19),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ),
-              ]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.place_rounded, color: Bento.blue, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(
+                    location.label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, height: 1.35,
+                      color: Bento.ink, fontWeight: FontWeight.w700),
+                  )),
+                ]),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 child: Wrap(spacing: 1, runSpacing: 0, children: [
