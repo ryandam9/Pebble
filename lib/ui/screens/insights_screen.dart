@@ -24,7 +24,7 @@ class InsightsScreen extends StatelessWidget {
     final total = thisMonth.fold<int>(0, (sum, e) => sum + e.amountCents);
     final grouped = <String, int>{};
     for (final expense in thisMonth) {
-      grouped.update(expense.category, (sum) => sum + expense.amountCents,
+      grouped.update(store.categoryNameFor(expense.categoryId), (sum) => sum + expense.amountCents,
         ifAbsent: () => expense.amountCents);
     }
     final entries = grouped.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
