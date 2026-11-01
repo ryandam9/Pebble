@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/design.dart';
 import '../../core/formatting.dart';
 import '../../data/pebble_store.dart';
+import '../export_pdf.dart';
 import '../pebble_root.dart';
 import '../monthly_budget_dialog.dart';
 import 'categories_screen.dart';
@@ -66,6 +67,11 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
         ])),
+        const SizedBox(height: 16),
+        PebbleCard(child: ListenableBuilder(
+          listenable: store,
+          builder: (context, _) => ExportPdfRow(store: store),
+        )),
         const SizedBox(height: 16),
         PebbleCard(child: ListenableBuilder(
           listenable: store,
