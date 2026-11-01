@@ -368,6 +368,13 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
                       const Text('Try a shop name with its suburb, or a full street address.',
                         style: TextStyle(fontSize: 12, color: Watercolor.muted)),
                     for (final result in _results!) _placeRow(result),
+                    if (_results!.isNotEmpty && widget.service.searchAttribution != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, right: 5),
+                        child: Text(widget.service.searchAttribution!,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(fontSize: 10.5, color: Watercolor.muted)),
+                      ),
                   ] else if (_recent.isNotEmpty && (typed.isEmpty || _showRecent)) ...[
                     _sectionLabel('Recently selected',
                       trailing: TextButton(

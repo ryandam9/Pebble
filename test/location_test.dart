@@ -32,6 +32,9 @@ class FakeLocationService implements LocationService {
   ];
 
   @override
+  String? get searchAttribution => null;
+
+  @override
   Future<void> openInMaps(ExpenseLocation location) async => opened.add(location);
 }
 
@@ -84,6 +87,42 @@ void main() {
 
     expect(placeFromGeocoder(featureName: 'Woolworths', countryCode: 'NZ',
       latitude: -36.85, longitude: 174.76), isNull);
+  });
+
+  test('Google Places results keep the shop name and stay in Australia', () {
+    List<Map<String, Object>> country(String code) => [
+      {'shortText': code, 'types': ['country', 'political']},
+    ];
+    final results = parsePlacesResults({
+      'places': [
+        {
+          'displayName': {'text': 'Woolworths Docklands'},
+          'formattedAddress': '727 Collins St, Docklands VIC 3008, Australia',
+          'location': {'latitude': -37.8211, 'longitude': 144.9501},
+          'addressComponents': country('AU'),
+        },
+        {
+          'displayName': {'text': '833 Collins St'},
+          'formattedAddress': '833 Collins St, Docklands VIC 3008, Australia',
+          'location': {'latitude': -37.82, 'longitude': 144.94},
+          'addressComponents': country('AU'),
+        },
+        {
+          'displayName': {'text': 'Countdown'},
+          'formattedAddress': '1 Queen St, Auckland, New Zealand',
+          'location': {'latitude': -36.85, 'longitude': 174.76},
+          'addressComponents': country('NZ'),
+        },
+        {'displayName': {'text': 'No location'}},
+      ],
+    });
+    expect(results, hasLength(2));
+    expect(results.first.name, 'Woolworths Docklands');
+    expect(results.first.address, 'Woolworths Docklands, 727 Collins St, Docklands VIC 3008');
+    expect(results.first.addressWithoutName, '727 Collins St, Docklands VIC 3008');
+    expect(results.last.name, isNull);
+    expect(results.last.address, '833 Collins St, Docklands VIC 3008');
+    expect(parsePlacesResults('nonsense'), isEmpty);
   });
 
   test('results are limited to Australia and sorted nearest first', () {
