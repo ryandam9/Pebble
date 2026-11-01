@@ -24,6 +24,7 @@ class RecentAddresses {
           final address = json['address'];
           final latitude = json['latitude'];
           final longitude = json['longitude'];
+          final name = json['name'];
           if (address != null && address is! String) continue;
           if (latitude != null && latitude is! num) continue;
           if (longitude != null && longitude is! num) continue;
@@ -32,6 +33,7 @@ class RecentAddresses {
             address: address as String?,
             latitude: (latitude as num?)?.toDouble(),
             longitude: (longitude as num?)?.toDouble(),
+            name: name is String ? name : null,
           );
           if (!location.isEmpty) places.add(location);
         } on FormatException {
@@ -72,6 +74,7 @@ class RecentAddresses {
             'address': place.address,
             'latitude': place.latitude,
             'longitude': place.longitude,
+            if (place.name != null) 'name': place.name,
           }),
       ]);
     } on Object {

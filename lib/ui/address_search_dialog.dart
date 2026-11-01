@@ -151,15 +151,17 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
           color: recent ? const Color(0xFFFFF0E2) : const Color(0xFFE6F2FF),
           borderRadius: BorderRadius.circular(13),
         ),
-        child: Icon(recent ? Icons.history_rounded : Icons.location_on_outlined,
+        child: Icon(recent ? Icons.history_rounded : (location.name != null ? Icons.storefront_outlined : Icons.location_on_outlined),
           color: Watercolor.cobalt),
       ),
-      title: Text(label,
+      title: Text(location.name?.trim().isNotEmpty == true ? location.name!.trim() : label,
         maxLines: 2, overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Watercolor.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
       subtitle: Text(
-        location.hasCoordinates ? 'Map location available' : 'Saved as address',
+        location.addressWithoutName ??
+          (location.hasCoordinates ? 'Map location available' : 'Saved as address'),
+        maxLines: 2, overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 11, color: Watercolor.muted),
       ),
       trailing: const Icon(Icons.chevron_right_rounded, color: Watercolor.muted),
@@ -217,7 +219,7 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
                         fontSize: 28, fontWeight: FontWeight.w800,
                         color: Watercolor.ink, fontFamily: 'serif')),
                     SizedBox(height: 4),
-                    Text('Find a street, suburb or place',
+                    Text('Find a shop, street or place',
                       style: TextStyle(fontSize: 12, color: Watercolor.muted)),
                   ]),
                 ),
@@ -249,7 +251,7 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
                       }
                     },
                     decoration: InputDecoration(
-                      hintText: 'Address, suburb or place...',
+                      hintText: 'Shop name, address or place...',
                       hintStyle: const TextStyle(fontSize: 13),
                       prefixIcon: const Icon(Icons.search_rounded,
                         color: Watercolor.cobalt),
@@ -304,7 +306,7 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
                   ] else
                     const Padding(
                       padding: EdgeInsets.only(top: 9),
-                      child: Text('Address lookup is unavailable on this device. '
+                      child: Text('Place search is unavailable on this device. '
                         'You can still save an address exactly as typed.',
                         style: TextStyle(
                           color: Watercolor.muted, fontSize: 12)),
@@ -359,7 +361,7 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
                   if (_results != null && !_showRecent) ...[
                     _sectionLabel(_results!.isEmpty ? 'No matching places' : 'Search results'),
                     if (_results!.isEmpty)
-                      const Text('Try a full street address, suburb or postcode.',
+                      const Text('Try a shop name with its suburb, or a full street address.',
                         style: TextStyle(fontSize: 12, color: Watercolor.muted)),
                     for (final result in _results!) _placeRow(result),
                   ] else if (_recent.isNotEmpty && (typed.isEmpty || _showRecent)) ...[
