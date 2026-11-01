@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'expense_location.dart';
+import 'google_maps_key.dart';
 
 /// A problem the user can act on, with a message to show them.
 class LocationException implements Exception {
@@ -47,18 +48,9 @@ class DeviceLocationService implements LocationService {
 
   bool get _hasGeocoder => Platform.isAndroid || Platform.isIOS;
 
-  /// Google Places API key, passed in at build time from the untracked
-  /// `secrets.json` (`--dart-define-from-file=secrets.json`). Without it,
-  /// search falls back to the platform geocoder, which has no shop names.
-  static const _placesKey = String.fromEnvironment('PLACES_API_KEY');
-
-  /// SHA-1 of the certificate the APK is signed with, without colons. Google
-  /// checks it against the key's Android app restriction.
-  static const _signingSha1 = String.fromEnvironment('PLACES_ANDROID_SHA1');
-
   @override
   String? get searchAttribution =>
-      _placesKey.isNotEmpty || Platform.isAndroid ? 'Powered by Google' : null;
+      googleMapsKey.isNotEmpty || Platform.isAndroid ? 'Powered by Google' : null;
 
   @override
   Future<ExpenseLocation> currentLocation() async {
@@ -104,7 +96,7 @@ class DeviceLocationService implements LocationService {
     if (!canSearch || text.isEmpty) return const [];
     final near = await _nearbyPosition();
     final found = <ExpenseLocation>[];
-    if (_placesKey.isNotEmpty) {
+    if (googleMapsKey.isNotEmpty) {
       found.addAll(await _placesSearch(text, near));
     } else if (Platform.isAndroid) {
       // Look around the user first, then the rest of Australia, so a nearby
@@ -156,14 +148,10 @@ class DeviceLocationService implements LocationService {
           Uri.https('places.googleapis.com', '/v1/places:searchText'));
       request.headers
         ..contentType = ContentType.json
-        ..set('X-Goog-Api-Key', _placesKey)
+        ..set('X-Goog-Api-Key', googleMapsKey)
         ..set('X-Goog-FieldMask',
             'places.displayName,places.formattedAddress,places.location,places.addressComponents');
-      if (Platform.isAndroid && _signingSha1.isNotEmpty) {
-        request.headers
-          ..set('X-Android-Package', 'au.com.pebble.pebble')
-          ..set('X-Android-Cert', _signingSha1.replaceAll(':', '').toUpperCase());
-      }
+      googleAndroidHeaders().forEach(request.headers.set);
       request.write(body);
       final response = await request.close().timeout(const Duration(seconds: 15));
       final reply = await response.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
