@@ -28,6 +28,9 @@ class _FakeLocations implements LocationService {
       latitude: -37.81, longitude: 144.96);
 
   @override
+  String? get searchAttribution => null;
+
+  @override
   Future<void> openInMaps(ExpenseLocation location) async {}
 }
 

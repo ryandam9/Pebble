@@ -30,3 +30,6 @@ web/
 
 # Licensed font binaries are fetched and SHA-verified during bootstrap.
 assets/fonts/*.ttf
+
+# Local API keys, passed to builds with --dart-define-from-file=secrets.json.
+secrets.json

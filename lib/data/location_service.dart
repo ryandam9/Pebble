@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:io';
 
@@ -26,8 +27,11 @@ abstract class LocationService {
   /// The device's position, with a street address when one can be found.
   Future<ExpenseLocation> currentLocation();
 
-  /// Up to five places matching [query]. Empty when nothing matches.
+  /// Places matching [query]. Empty when nothing matches.
   Future<List<ExpenseLocation>> search(String query);
+
+  /// Credit to show under search results, e.g. "Powered by Google".
+  String? get searchAttribution;
 
   /// Shows [location] in the device's maps app (or a browser on desktop).
   Future<void> openInMaps(ExpenseLocation location);
@@ -42,6 +46,19 @@ class DeviceLocationService implements LocationService {
   bool get canSearch => _hasGeocoder;
 
   bool get _hasGeocoder => Platform.isAndroid || Platform.isIOS;
+
+  /// Google Places API key, passed in at build time from the untracked
+  /// `secrets.json` (`--dart-define-from-file=secrets.json`). Without it,
+  /// search falls back to the platform geocoder, which has no shop names.
+  static const _placesKey = String.fromEnvironment('PLACES_API_KEY');
+
+  /// SHA-1 of the certificate the APK is signed with, without colons. Google
+  /// checks it against the key's Android app restriction.
+  static const _signingSha1 = String.fromEnvironment('PLACES_ANDROID_SHA1');
+
+  @override
+  String? get searchAttribution =>
+      _placesKey.isNotEmpty || Platform.isAndroid ? 'Powered by Google' : null;
 
   @override
   Future<ExpenseLocation> currentLocation() async {
@@ -87,7 +104,9 @@ class DeviceLocationService implements LocationService {
     if (!canSearch || text.isEmpty) return const [];
     final near = await _nearbyPosition();
     final found = <ExpenseLocation>[];
-    if (Platform.isAndroid) {
+    if (_placesKey.isNotEmpty) {
+      found.addAll(await _placesSearch(text, near));
+    } else if (Platform.isAndroid) {
       // Look around the user first, then the rest of Australia, so a nearby
       // store is found even when the same name exists in every city.
       LocationException? failure;
@@ -110,6 +129,61 @@ class DeviceLocationService implements LocationService {
       found.where((place) => isInAustralia(place.latitude!, place.longitude!)),
       near?.latitude, near?.longitude,
     ).take(8).toList();
+  }
+
+  /// Google Places text search. Biased to 30 km around the user when known,
+  /// otherwise limited to Australia.
+  Future<List<ExpenseLocation>> _placesSearch(String text, Position? near) async {
+    final body = jsonEncode({
+      'textQuery': text,
+      'regionCode': 'AU',
+      'languageCode': 'en-AU',
+      'pageSize': 10,
+      if (near != null)
+        'locationBias': {'circle': {
+          'center': {'latitude': near.latitude, 'longitude': near.longitude},
+          'radius': 30000.0,
+        }}
+      else
+        'locationRestriction': {'rectangle': {
+          'low': {'latitude': australiaBounds.south, 'longitude': australiaBounds.west},
+          'high': {'latitude': australiaBounds.north, 'longitude': australiaBounds.east},
+        }},
+    });
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+    try {
+      final request = await client.postUrl(
+          Uri.https('places.googleapis.com', '/v1/places:searchText'));
+      request.headers
+        ..contentType = ContentType.json
+        ..set('X-Goog-Api-Key', _placesKey)
+        ..set('X-Goog-FieldMask',
+            'places.displayName,places.formattedAddress,places.location,places.addressComponents');
+      if (Platform.isAndroid && _signingSha1.isNotEmpty) {
+        request.headers
+          ..set('X-Android-Package', 'au.com.pebble.pebble')
+          ..set('X-Android-Cert', _signingSha1.replaceAll(':', '').toUpperCase());
+      }
+      request.write(body);
+      final response = await request.close().timeout(const Duration(seconds: 15));
+      final reply = await response.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
+      if (response.statusCode == 400 || response.statusCode == 403) {
+        throw const LocationException(
+          'Google Places refused the search. Check the API key and its restrictions.');
+      }
+      if (response.statusCode != 200) {
+        throw const LocationException('Search failed. Please try again.');
+      }
+      return parsePlacesResults(jsonDecode(reply));
+    } on TimeoutException {
+      throw const LocationException('Search timed out. Check your internet connection.');
+    } on IOException {
+      throw const LocationException('Search failed. Check your internet connection.');
+    } on FormatException {
+      throw const LocationException('Search failed. Please try again.');
+    } finally {
+      client.close(force: true);
+    }
   }
 
   /// Where the user is now, for ranking results. Asks for permission once if
@@ -340,6 +414,47 @@ ExpenseLocation? placeFromGeocoder({
   if (parts.isEmpty) return null;
   return ExpenseLocation(
     address: parts.join(', '), name: name, latitude: latitude, longitude: longitude);
+}
+
+/// Locations from a Google Places text search response. A business keeps its
+/// name in front: "Woolworths, 727 Collins St, Docklands VIC 3008". Places
+/// outside Australia and malformed entries are skipped.
+List<ExpenseLocation> parsePlacesResults(Object? json) {
+  if (json is! Map || json['places'] is! List) return const [];
+  final results = <ExpenseLocation>[];
+  for (final place in json['places'] as List) {
+    if (place is! Map) continue;
+    final location = place['location'];
+    if (location is! Map || location['latitude'] is! num || location['longitude'] is! num) continue;
+    final components = place['addressComponents'];
+    final country = components is List
+        ? components.whereType<Map>().where((part) =>
+            part['types'] is List && (part['types'] as List).contains('country')).firstOrNull
+        : null;
+    if (country != null && country['shortText'] != 'AU') continue;
+
+    var address = (place['formattedAddress'] as Object?) is String
+        ? (place['formattedAddress'] as String).trim() : '';
+    if (address.endsWith(', Australia')) {
+      address = address.substring(0, address.length - ', Australia'.length);
+    }
+    final display = place['displayName'];
+    var name = display is Map && display['text'] is String
+        ? (display['text'] as String).trim() : null;
+    // A plain street address comes back with the address as its "name".
+    if (name != null && (name.isEmpty || address.toLowerCase().startsWith(name.toLowerCase()))) {
+      name = null;
+    }
+    final full = [name, address].where((part) => part != null && part.isNotEmpty).join(', ');
+    if (full.isEmpty) continue;
+    results.add(ExpenseLocation(
+      address: full,
+      name: name,
+      latitude: (location['latitude'] as num).toDouble(),
+      longitude: (location['longitude'] as num).toDouble(),
+    ));
+  }
+  return results;
 }
 
 /// "350 m" or "2.4 km".
