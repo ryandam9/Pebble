@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart' as geo;
+import 'package:geocoding_android/geocoder.dart' as android;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -35,10 +36,10 @@ abstract class LocationService {
 class DeviceLocationService implements LocationService {
   const DeviceLocationService();
 
-  /// Search uses OpenStreetMap's Photon service (internet, no API key), so it
-  /// works everywhere. The platform geocoder is only on Android and iOS.
+  /// The platform geocoder only exists on Android and iOS. It needs internet
+  /// but no API key.
   @override
-  bool get canSearch => true;
+  bool get canSearch => _hasGeocoder;
 
   bool get _hasGeocoder => Platform.isAndroid || Platform.isIOS;
 
@@ -79,87 +80,125 @@ class DeviceLocationService implements LocationService {
     );
   }
 
+  /// Places in Australia matching [query], nearest to the user first.
   @override
   Future<List<ExpenseLocation>> search(String query) async {
     final text = query.trim();
-    if (text.isEmpty) return const [];
-    LocationException? failure;
-    try {
-      final places = await _searchPhoton(text);
-      if (places.isNotEmpty) return places;
-    } on LocationException catch (error) {
-      failure = error;
-    }
-    // Photon knows shops and places; the platform geocoder is sometimes
-    // better at plain street addresses, so try it when Photon finds nothing.
-    if (_hasGeocoder) {
-      try {
-        return await _searchGeocoder(text);
-      } on LocationException {
-        if (failure != null) throw failure;
-        rethrow;
+    if (!canSearch || text.isEmpty) return const [];
+    final near = await _nearbyPosition();
+    final found = <ExpenseLocation>[];
+    if (Platform.isAndroid) {
+      // Look around the user first, then the rest of Australia, so a nearby
+      // store is found even when the same name exists in every city.
+      LocationException? failure;
+      for (final bounds in [
+        if (near != null) boundsAround(near.latitude, near.longitude),
+        australiaBounds,
+      ]) {
+        try {
+          found.addAll(await _androidSearch(text, bounds));
+        } on LocationException catch (error) {
+          failure ??= error;
+        }
+        if (found.length >= 5) break;
       }
+      if (found.isEmpty && failure != null) throw failure;
+    } else {
+      found.addAll(await _geocoderSearch(text));
     }
-    if (failure != null) throw failure;
-    return const [];
+    return nearestFirst(
+      found.where((place) => isInAustralia(place.latitude!, place.longitude!)),
+      near?.latitude, near?.longitude,
+    ).take(8).toList();
   }
 
-  /// Shops, places and addresses from OpenStreetMap, nearest first when the
-  /// device already knows roughly where it is.
-  Future<List<ExpenseLocation>> _searchPhoton(String text) async {
-    final near = await _lastKnownPosition();
-    final uri = Uri.https('photon.komoot.io', '/api/', {
-      'q': text,
-      'limit': '8',
-      'lang': 'en',
-      if (near != null) ...{
-        'lat': near.latitude.toStringAsFixed(3),
-        'lon': near.longitude.toStringAsFixed(3),
-      },
-    });
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+  /// Where the user is now, for ranking results. Asks for permission once if
+  /// it has not been decided yet; null when it is refused or unavailable.
+  Future<Position?> _nearbyPosition() async {
     try {
-      final request = await client.getUrl(uri);
-      request.headers.set(HttpHeaders.userAgentHeader, 'Pebble expense app (au.com.pebble)');
-      final response = await request.close().timeout(const Duration(seconds: 15));
-      final body = await response.transform(utf8.decoder).join().timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) {
-        throw const LocationException('Search failed. Please try again.');
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
       }
-      return parsePhotonResults(jsonDecode(body)).take(5).toList();
-    } on TimeoutException {
-      throw const LocationException('Search timed out. Check your internet connection.');
-    } on SocketException {
-      throw const LocationException('Search failed. Check your internet connection.');
-    } on HttpException {
-      throw const LocationException('Search failed. Check your internet connection.');
-    } on FormatException {
-      throw const LocationException('Search failed. Please try again.');
-    } finally {
-      client.close(force: true);
-    }
-  }
-
-  /// Rough position for ranking nearby results. Never prompts for permission.
-  Future<Position?> _lastKnownPosition() async {
-    try {
-      final permission = await Geolocator.checkPermission();
       if (permission != LocationPermission.always &&
           permission != LocationPermission.whileInUse) {
         return null;
       }
-      return await Geolocator.getLastKnownPosition().timeout(const Duration(seconds: 2));
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) return last;
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 6),
+        ),
+      );
     } on Object {
       return null;
     }
   }
 
-  Future<List<ExpenseLocation>> _searchGeocoder(String text) async {
+  /// Android's own geocoder, limited to [bounds]. It returns the business
+  /// name ("feature name") the plugin's simple API throws away.
+  Future<List<ExpenseLocation>> _androidSearch(String text, Bounds bounds) async {
+    final geocoder = android.Geocoder(locale: android.Locale(identifier: 'en_AU'));
+    final box = android.GeographicBounds(
+      lowerLeftLatitude: bounds.south, lowerLeftLongitude: bounds.west,
+      upperRightLatitude: bounds.north, upperRightLongitude: bounds.east,
+    );
+    const maxResults = 10;
+    List<android.Address?> addresses;
+    try {
+      if (await android.Build.getSdkVersion() < 33) {
+        addresses = await geocoder
+            .getFromLocationNamePreAndroidApi33(text, maxResults, box)
+            .timeout(const Duration(seconds: 15)) ?? const [];
+      } else {
+        final done = Completer<List<android.Address?>>();
+        final listener = android.GeocodeListener(
+          onGeocode: (_, list) { if (!done.isCompleted) done.complete(list); },
+          onError: (_, message) {
+            if (!done.isCompleted) done.completeError(PlatformException(code: 'GEOCODE', message: message));
+          },
+        );
+        await geocoder.getFromLocationName(text, maxResults, listener, box);
+        addresses = await done.future.timeout(const Duration(seconds: 15));
+      }
+    } on TimeoutException {
+      throw const LocationException('Search timed out. Check your internet connection.');
+    } on PlatformException {
+      throw const LocationException('Search failed. Check your internet connection.');
+    }
+    final results = <ExpenseLocation>[];
+    for (final address in addresses.nonNulls) {
+      final latitude = await address.getLatitude();
+      final longitude = await address.getLongitude();
+      if (latitude == null || longitude == null) continue;
+      final place = placeFromGeocoder(
+        featureName: await address.getFeatureName(),
+        subThoroughfare: await address.getSubThouroughfare(),
+        thoroughfare: await address.getThouroughfare(),
+        subLocality: await address.getSubLocality(),
+        locality: await address.getLocality(),
+        state: await address.getAdminArea(),
+        postcode: await address.getPostalCode(),
+        countryCode: await address.getCountryCode(),
+        firstLine: await address.getAddressLine(0),
+        latitude: latitude,
+        longitude: longitude,
+      );
+      if (place != null) results.add(place);
+    }
+    return results;
+  }
+
+  /// The plugin's simple API (used on iOS): coordinates, then the street
+  /// address at each one.
+  Future<List<ExpenseLocation>> _geocoderSearch(String text) async {
     final List<geo.Location> matches;
     try {
       matches = await geo.Geocoding().locationFromAddress(text).timeout(const Duration(seconds: 15));
     } on PlatformException catch (error) {
-      // Android reports "no results" as an error.
       if (error.code == 'NOT_FOUND') return const [];
       throw const LocationException('Search failed. Check your internet connection.');
     } on TimeoutException {
@@ -218,60 +257,95 @@ String? formatPlacemark(geo.Placemark place) {
   return parts.isEmpty ? null : parts.join(', ');
 }
 
-/// Locations from a Photon (OpenStreetMap) search response. A shop or other
-/// named place gets its name in front: "Woolworths, 833 Collins Street,
-/// Docklands, Victoria 3008". Malformed features are skipped.
-List<ExpenseLocation> parsePhotonResults(Object? json) {
-  if (json is! Map || json['features'] is! List) return const [];
-  final results = <ExpenseLocation>[];
-  final seen = <String>{};
-  for (final feature in json['features'] as List) {
-    if (feature is! Map) continue;
-    final geometry = feature['geometry'];
-    final props = feature['properties'];
-    if (geometry is! Map || props is! Map) continue;
-    final coordinates = geometry['coordinates'];
-    if (coordinates is! List || coordinates.length < 2 ||
-        coordinates[0] is! num || coordinates[1] is! num) {
-      continue;
-    }
-    String? field(String key) {
-      final value = props[key];
-      return value is String && value.trim().isNotEmpty ? value.trim() : null;
-    }
+/// A latitude/longitude box.
+typedef Bounds = ({double south, double west, double north, double east});
 
-    final street = [field('housenumber'), field('street')].whereType<String>().join(' ');
-    final suburb = field('district') ?? field('locality') ?? field('city');
-    final state = [field('state'), field('postcode')].whereType<String>().join(' ');
-    var name = field('name');
-    // Only a shop, venue or building name is worth a heading; a street or
-    // suburb result's "name" is just the street or suburb itself.
-    final type = field('type');
-    final isPlace = type == null || type == 'house' || type == 'other';
-    if (name != null && (!isPlace || name == street)) name = null;
+/// Mainland Australia and Tasmania, with a little margin.
+const Bounds australiaBounds = (south: -44.0, west: 112.0, north: -9.0, east: 154.5);
 
-    final parts = <String>[];
-    for (final part in [
-      name,
-      street.isEmpty ? (name == null ? field('name') : null) : street,
-      suburb,
-      state,
-      if (field('countrycode') != 'AU') field('country'),
-    ]) {
-      if (part != null && part.isNotEmpty && !parts.contains(part)) parts.add(part);
-    }
-    if (parts.isEmpty) continue;
-    final address = parts.join(', ');
-    if (!seen.add(address)) continue;
-    results.add(ExpenseLocation(
-      address: address,
-      name: name,
-      latitude: (coordinates[1] as num).toDouble(),
-      longitude: (coordinates[0] as num).toDouble(),
-    ));
-  }
-  return results;
+bool isInAustralia(double latitude, double longitude) =>
+    latitude >= australiaBounds.south && latitude <= australiaBounds.north &&
+    longitude >= australiaBounds.west && longitude <= australiaBounds.east;
+
+/// Roughly 30 km either side of a point.
+Bounds boundsAround(double latitude, double longitude) =>
+    (south: latitude - .27, west: longitude - .34, north: latitude + .27, east: longitude + .34);
+
+/// Straight-line distance in metres.
+double distanceBetween(double lat1, double lon1, double lat2, double lon2) {
+  const earth = 6371000.0;
+  double rad(double degrees) => degrees * math.pi / 180;
+  final dLat = rad(lat2 - lat1);
+  final dLon = rad(lon2 - lon1);
+  final a = math.pow(math.sin(dLat / 2), 2) +
+      math.cos(rad(lat1)) * math.cos(rad(lat2)) * math.pow(math.sin(dLon / 2), 2);
+  return 2 * earth * math.asin(math.sqrt(a));
 }
+
+/// [places] without duplicates, closest to ([latitude], [longitude]) first,
+/// each with its distance. Kept in the given order when there is no position.
+List<ExpenseLocation> nearestFirst(Iterable<ExpenseLocation> places, double? latitude, double? longitude) {
+  final seen = <String>{};
+  final unique = [for (final place in places) if (seen.add(place.label.toLowerCase())) place];
+  if (latitude == null || longitude == null) return unique;
+  final measured = [
+    for (final place in unique)
+      ExpenseLocation(
+        address: place.address, name: place.name,
+        latitude: place.latitude, longitude: place.longitude,
+        distanceMeters: place.hasCoordinates
+          ? distanceBetween(latitude, longitude, place.latitude!, place.longitude!)
+          : null,
+      ),
+  ];
+  measured.sort((a, b) => (a.distanceMeters ?? double.infinity).compareTo(b.distanceMeters ?? double.infinity));
+  return measured;
+}
+
+/// A geocoder result as a location: "Woolworths, 727 Collins Street,
+/// Docklands, VIC 3008". The business name leads when there is one. Null for
+/// a result outside Australia or with nothing to show.
+ExpenseLocation? placeFromGeocoder({
+  String? featureName,
+  String? subThoroughfare,
+  String? thoroughfare,
+  String? subLocality,
+  String? locality,
+  String? state,
+  String? postcode,
+  String? countryCode,
+  String? firstLine,
+  required double latitude,
+  required double longitude,
+}) {
+  String? clean(String? text) => text == null || text.trim().isEmpty ? null : text.trim();
+  if (clean(countryCode) != null && clean(countryCode)!.toUpperCase() != 'AU') return null;
+  final street = [clean(subThoroughfare), clean(thoroughfare)].nonNulls.join(' ');
+  final suburb = clean(subLocality) ?? clean(locality);
+  final region = [clean(state), clean(postcode)].nonNulls.join(' ');
+  // For a plain address the feature name is just the house number, street
+  // or suburb; only keep it when it is something else, like a shop name.
+  var name = clean(featureName);
+  if (name != null &&
+      (RegExp(r'^\d').hasMatch(name) ||
+          [subThoroughfare, thoroughfare, street, subLocality, locality, state, postcode]
+              .any((part) => clean(part)?.toLowerCase() == name!.toLowerCase()))) {
+    name = null;
+  }
+  final parts = <String>[];
+  final fallback = clean(firstLine?.split(',').first);
+  for (final part in [name, street.isEmpty ? fallback : street, suburb, region]) {
+    if (part != null && part.isNotEmpty && !parts.contains(part)) parts.add(part);
+  }
+  if (parts.isEmpty) return null;
+  return ExpenseLocation(
+    address: parts.join(', '), name: name, latitude: latitude, longitude: longitude);
+}
+
+/// "350 m" or "2.4 km".
+String formatDistance(double meters) => meters < 1000
+    ? '${(meters / 10).round() * 10} m'
+    : '${(meters / 1000).toStringAsFixed(meters < 10000 ? 1 : 0)} km';
 
 /// Links to try, best first. Android's `geo:` lets the user pick any maps app;
 /// the web link is the fallback everywhere.

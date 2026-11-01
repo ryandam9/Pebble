@@ -2,7 +2,7 @@ import 'pebble_database.dart';
 
 /// Where an expense happened: an address, coordinates, or both.
 class ExpenseLocation {
-  const ExpenseLocation({this.address, this.latitude, this.longitude, this.name})
+  const ExpenseLocation({this.address, this.latitude, this.longitude, this.name, this.distanceMeters})
       : assert((latitude == null) == (longitude == null), 'Set both coordinates or neither');
 
   /// The saved location of [entry], or null if it has none.
@@ -21,6 +21,9 @@ class ExpenseLocation {
   /// Shop or place name, when search found one. It is already part of
   /// [address]; kept separately only so pickers can show it as a heading.
   final String? name;
+
+  /// How far a search result is from the user. Shown in pickers, never saved.
+  final double? distanceMeters;
   final double? latitude;
   final double? longitude;
 
