@@ -66,35 +66,41 @@ void main() {
     expect(formatPlacemark(place), '833 Collins Street, Docklands, VIC 3008');
   });
 
-  test('Photon results put the shop name first and skip junk', () {
-    final results = parsePhotonResults({
-      'features': [
-        {
-          'geometry': {'coordinates': [144.9466, -37.8213]},
-          'properties': {
-            'name': 'Woolworths', 'type': 'house', 'osm_key': 'shop',
-            'housenumber': '833', 'street': 'Collins Street', 'district': 'Docklands',
-            'city': 'Melbourne', 'state': 'Victoria', 'postcode': '3008', 'countrycode': 'AU',
-          },
-        },
-        {
-          'geometry': {'coordinates': [144.95, -37.82]},
-          'properties': {
-            'name': 'Collins Street', 'type': 'street', 'city': 'Melbourne',
-            'state': 'Victoria', 'countrycode': 'AU',
-          },
-        },
-        {'geometry': {'coordinates': ['bad']}, 'properties': {'name': 'Broken'}},
-      ],
-    });
-    expect(results, hasLength(2));
-    expect(results.first.name, 'Woolworths');
-    expect(results.first.address, 'Woolworths, 833 Collins Street, Docklands, Victoria 3008');
-    expect(results.first.addressWithoutName, '833 Collins Street, Docklands, Victoria 3008');
-    expect(results.first.latitude, -37.8213);
-    expect(results.last.name, isNull);
-    expect(results.last.address, 'Collins Street, Melbourne, Victoria');
-    expect(parsePhotonResults('nonsense'), isEmpty);
+  test('a geocoded shop keeps its name; a plain address does not', () {
+    final shop = placeFromGeocoder(
+      featureName: 'Woolworths', subThoroughfare: '727', thoroughfare: 'Collins Street',
+      locality: 'Docklands', state: 'VIC', postcode: '3008', countryCode: 'AU',
+      latitude: -37.8211, longitude: 144.9501)!;
+    expect(shop.name, 'Woolworths');
+    expect(shop.address, 'Woolworths, 727 Collins Street, Docklands, VIC 3008');
+    expect(shop.addressWithoutName, '727 Collins Street, Docklands, VIC 3008');
+
+    final house = placeFromGeocoder(
+      featureName: '833', subThoroughfare: '833', thoroughfare: 'Collins Street',
+      locality: 'Docklands', state: 'VIC', postcode: '3008', countryCode: 'AU',
+      latitude: -37.82, longitude: 144.94)!;
+    expect(house.name, isNull);
+    expect(house.address, '833 Collins Street, Docklands, VIC 3008');
+
+    expect(placeFromGeocoder(featureName: 'Woolworths', countryCode: 'NZ',
+      latitude: -36.85, longitude: 174.76), isNull);
+  });
+
+  test('results are limited to Australia and sorted nearest first', () {
+    expect(isInAustralia(-37.82, 144.95), isTrue);
+    expect(isInAustralia(-36.85, 174.76), isFalse);
+    const sydney = ExpenseLocation(name: 'Woolworths', address: 'Woolworths, Sydney',
+      latitude: -33.87, longitude: 151.21);
+    const docklands = ExpenseLocation(name: 'Woolworths', address: 'Woolworths, Docklands',
+      latitude: -37.8211, longitude: 144.9501);
+    final sorted = nearestFirst([sydney, docklands, sydney], -37.82, 144.95);
+    expect(sorted.map((place) => place.address), ['Woolworths, Docklands', 'Woolworths, Sydney']);
+    expect(sorted.first.distanceMeters, lessThan(200));
+    expect(sorted.last.distanceMeters, greaterThan(700000));
+    expect(nearestFirst([sydney, docklands], null, null).first.address, 'Woolworths, Sydney');
+    expect(formatDistance(345), '350 m');
+    expect(formatDistance(2440), '2.4 km');
+    expect(formatDistance(713000), '713 km');
   });
 
   test('location label falls back to coordinates', () {

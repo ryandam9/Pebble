@@ -20,6 +20,7 @@ dependencies:
   google_mlkit_text_recognition: ^0.17.1
   geolocator: ^14.1.2
   geocoding: ^5.0.1
+  geocoding_android: ^5.1.0
   url_launcher: ^6.3.3
   flutter_map: ^8.3.2
   latlong2: ^0.10.1

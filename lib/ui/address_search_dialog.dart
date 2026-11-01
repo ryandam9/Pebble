@@ -159,8 +159,12 @@ class _AddressSearchDialogState extends State<AddressSearchDialog> {
         style: const TextStyle(
           color: Watercolor.ink, fontSize: 13.5, fontWeight: FontWeight.w700)),
       subtitle: Text(
-        location.addressWithoutName ??
-          (location.hasCoordinates ? 'Map location available' : 'Saved as address'),
+        [
+          if (location.distanceMeters != null) formatDistance(location.distanceMeters!),
+          location.addressWithoutName ??
+            (location.name == null && location.distanceMeters != null ? null
+              : location.hasCoordinates ? 'Map location available' : 'Saved as address'),
+        ].nonNulls.join(' · '),
         maxLines: 2, overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 11, color: Watercolor.muted),
       ),
