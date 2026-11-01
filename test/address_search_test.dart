@@ -31,6 +31,16 @@ class _FakeLocations implements LocationService {
   Future<void> openInMaps(ExpenseLocation location) async {}
 }
 
+class _ShopLocations extends _FakeLocations {
+  @override
+  Future<List<ExpenseLocation>> search(String query) async => const [
+    ExpenseLocation(
+      name: 'Woolworths',
+      address: 'Woolworths, 833 Collins Street, Docklands, VIC 3008',
+      latitude: -37.8213, longitude: 144.9466),
+  ];
+}
+
 Future<void> _open(WidgetTester tester, _FakeLocations fake) async {
   await tester.pumpWidget(MaterialApp(home: Scaffold(body: Builder(
     builder: (context) => Center(child: TextButton(
@@ -54,6 +64,21 @@ Future<void> _open(WidgetTester tester, _FakeLocations fake) async {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('a shop result shows its name above the address', (tester) async {
+    final service = _ShopLocations();
+    await _open(tester, service);
+    await tester.enterText(find.byKey(const Key('addressQueryInput')), 'Woolworths');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('addressSearchButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('Woolworths'), findsWidgets);
+    expect(find.text('833 Collins Street, Docklands, VIC 3008'), findsOneWidget);
+    await tester.tap(find.text('833 Collins Street, Docklands, VIC 3008'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chosen: Woolworths, 833 Collins Street, Docklands, VIC 3008'), findsOneWidget);
+    expect((await const RecentAddresses().read()).single.name, 'Woolworths');
+  });
 
   testWidgets('minimal dialog searches and selects geocoded results', (tester) async {
     tester.view.physicalSize = const Size(430, 950);

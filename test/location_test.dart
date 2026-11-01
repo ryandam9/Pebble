@@ -66,6 +66,37 @@ void main() {
     expect(formatPlacemark(place), '833 Collins Street, Docklands, VIC 3008');
   });
 
+  test('Photon results put the shop name first and skip junk', () {
+    final results = parsePhotonResults({
+      'features': [
+        {
+          'geometry': {'coordinates': [144.9466, -37.8213]},
+          'properties': {
+            'name': 'Woolworths', 'type': 'house', 'osm_key': 'shop',
+            'housenumber': '833', 'street': 'Collins Street', 'district': 'Docklands',
+            'city': 'Melbourne', 'state': 'Victoria', 'postcode': '3008', 'countrycode': 'AU',
+          },
+        },
+        {
+          'geometry': {'coordinates': [144.95, -37.82]},
+          'properties': {
+            'name': 'Collins Street', 'type': 'street', 'city': 'Melbourne',
+            'state': 'Victoria', 'countrycode': 'AU',
+          },
+        },
+        {'geometry': {'coordinates': ['bad']}, 'properties': {'name': 'Broken'}},
+      ],
+    });
+    expect(results, hasLength(2));
+    expect(results.first.name, 'Woolworths');
+    expect(results.first.address, 'Woolworths, 833 Collins Street, Docklands, Victoria 3008');
+    expect(results.first.addressWithoutName, '833 Collins Street, Docklands, Victoria 3008');
+    expect(results.first.latitude, -37.8213);
+    expect(results.last.name, isNull);
+    expect(results.last.address, 'Collins Street, Melbourne, Victoria');
+    expect(parsePhotonResults('nonsense'), isEmpty);
+  });
+
   test('location label falls back to coordinates', () {
     expect(const ExpenseLocation(latitude: -37.8, longitude: 144.9).label, '-37.80000, 144.90000');
     expect(const ExpenseLocation(address: ' ').isEmpty, isTrue);
