@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:pebble/data/expense_location.dart';
+import 'package:pebble/data/google_maps_key.dart';
 import 'package:pebble/data/location_service.dart';
 import 'package:pebble/data/pebble_database.dart';
 import 'package:pebble/data/pebble_store.dart';
@@ -140,6 +141,16 @@ void main() {
     expect(formatDistance(345), '350 m');
     expect(formatDistance(2440), '2.4 km');
     expect(formatDistance(713000), '713 km');
+  });
+
+  test('the Google map preview is a sharp, pinned, size-limited image', () {
+    final uri = googleStaticMapUri(
+      latitude: -37.8211, longitude: 144.9501, width: 900, height: 132, key: 'k');
+    expect(uri.host, 'maps.googleapis.com');
+    expect(uri.queryParameters['size'], '640x132');
+    expect(uri.queryParameters['scale'], '2');
+    expect(uri.queryParameters['markers'], 'color:red|-37.8211,144.9501');
+    expect(uri.queryParameters['key'], 'k');
   });
 
   test('location label falls back to coordinates', () {
